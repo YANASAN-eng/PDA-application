@@ -8,28 +8,21 @@
 """
 
 import sqlite3
-from datetime import date, datetime
 
+from pda.db._convert import date_from_db, date_to_db, datetime_from_db, datetime_to_db
 from pda.domain.task import Priority, Task
 
-_DATETIME = "%Y-%m-%dT%H:%M:%S"
 # 列名はコード内の定数なので f-string で埋め込んでよい。値は必ず ? プレースホルダで渡す
 _COLUMNS = "id, title, priority, due, done, created_at"
-
-
-def _to_db_datetime(value: datetime) -> str:
-    if value.microsecond:
-        raise ValueError("日時は秒単位で渡してください(DB は秒単位で保存します)")
-    return value.strftime(_DATETIME)
 
 
 def _to_row(task: Task) -> tuple:
     return (
         task.title,
         task.priority.name,
-        task.due.isoformat() if task.due else None,
+        date_to_db(task.due) if task.due else None,
         int(task.done),
-        _to_db_datetime(task.created_at),
+        datetime_to_db(task.created_at),
     )
 
 
@@ -39,9 +32,9 @@ def _from_row(row: tuple) -> Task:
         id=id_,
         title=title,
         priority=Priority[priority],
-        due=date.fromisoformat(due) if due else None,
+        due=date_from_db(due) if due else None,
         done=bool(done),
-        created_at=datetime.strptime(created_at, _DATETIME),
+        created_at=datetime_from_db(created_at),
     )
 
 

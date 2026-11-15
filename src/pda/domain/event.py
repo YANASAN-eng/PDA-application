@@ -19,6 +19,7 @@ class AllDayEvent:
     end: date | None = None
     location: str | None = None
     memo: str | None = None
+    id: int | None = None  # 保存前は None。リポジトリが保存時に振る
 
     def __post_init__(self) -> None:
         require_title(self.title)
@@ -43,6 +44,7 @@ class TimedEvent:
     end: datetime | None = None
     location: str | None = None
     memo: str | None = None
+    id: int | None = None  # 保存前は None。リポジトリが保存時に振る
 
     def __post_init__(self) -> None:
         require_title(self.title)
