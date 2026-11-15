@@ -117,3 +117,9 @@ def test_前日から続く予定はその日の最初の時刻付き予定に�
     result = events_on(DAY, [meeting, night])
 
     assert [e.title for e in result] == ["夜勤", "会議"]
+
+
+# --- id --------------------------------------------------------------------
+def test_保存前の予定はidを持たない():
+    assert AllDayEvent(title="誕生日", start=DAY).id is None
+    assert TimedEvent(title="会議", start=at(DAY, 10)).id is None
