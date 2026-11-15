@@ -7,7 +7,7 @@ from enum import Enum
 
 from pda.domain._validation import require_title
 
-OVERDUE_PREFIX = "[超過]-"
+OVERDUE_PREFIX = "【超過】-"
 
 
 class Priority(Enum):
