@@ -2,7 +2,7 @@
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from enum import Enum
 
 from pda.domain._validation import require_title
@@ -22,12 +22,14 @@ class Priority(Enum):
         return self.value
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Task:
     title: str
     priority: Priority
+    created_at: datetime
     due: date | None = None
     done: bool = False
+    id: int | None = None  # 保存前は None。リポジトリが保存時に振る
 
     def __post_init__(self) -> None:
         require_title(self.title)
@@ -44,6 +46,11 @@ _PRIORITY_RANK = {p: i for i, p in enumerate(Priority)}  # 高=0, 中=1, 低=2
 
 
 def incomplete_by_priority(tasks: Iterable[Task]) -> list[Task]:
-    """未完了のタスクだけを優先度の高い順に返す。同じ優先度では元の順序を保つ。"""
-    # sorted は安定ソートなので、キーが等しい要素は入力の順序のまま残る
-    return sorted((t for t in tasks if not t.done), key=lambda t: _PRIORITY_RANK[t.priority])
+    """未完了のタスクだけを、優先度の高い順 → 作成日時の古い順に返す。
+
+    優先度も作成日時も同じなら元の順序を保つ(sorted は安定ソート)。
+    """
+    return sorted(
+        (t for t in tasks if not t.done),
+        key=lambda t: (_PRIORITY_RANK[t.priority], t.created_at),
+    )
