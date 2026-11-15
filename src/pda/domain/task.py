@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 
+from pda.domain._validation import require_title
+
 OVERDUE_PREFIX = "[超過]-"
 
 
@@ -28,8 +30,7 @@ class Task:
     done: bool = False
 
     def __post_init__(self) -> None:
-        if not self.title.strip():
-            raise ValueError("タイトルは空にできません")
+        require_title(self.title)
 
     def is_overdue(self, today: date) -> bool:
         """超過 = 未完了のまま期限の翌日以降になっていること(期限当日は含まない)。"""
