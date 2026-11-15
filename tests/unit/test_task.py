@@ -64,11 +64,11 @@ def test_完了済みのタスクは期限を過ぎても超過しない():
 
 
 def test_接頭辞は角括弧とハイフンの形():
-    assert OVERDUE_PREFIX == "[超過]-"
+    assert OVERDUE_PREFIX == "【超過】-"
 
 
 def test_超過したタスクは表示タイトルに接頭辞が付く():
-    assert _task().display_title(today=date(2026, 11, 16)) == "[超過]-レポートを書く"
+    assert _task().display_title(today=date(2026, 11, 16)) == "【超過】-レポートを書く"
 
 
 def test_超過していないタスクは表示タイトルがそのまま():
