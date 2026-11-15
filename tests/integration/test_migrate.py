@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from pda.db.migrate import connect, current_version, migrate, migrate_file
+from pda.db.migrate import checksum, connect, current_version, migrate, migrate_file
 
 NOW = datetime(2026, 11, 15, 9, 0, 0)
 
@@ -145,3 +145,37 @@ def test_新しく作るDBはバックアップを取らない(tmp_path, mig_dir
     migrate_file(tmp_path / "pda.db", now=NOW, migrations_dir=mig_dir)
 
     assert list(tmp_path.glob("*.bak")) == []
+
+
+# --- チェックサム -----------------------------------------------------------
+
+
+def test_同じ内容のファイルは同じチェックサムになる(tmp_path):
+    a, b = tmp_path / "a.sql", tmp_path / "b.sql"
+    a.write_bytes(b"CREATE TABLE t (x INTEGER);\n")
+    b.write_bytes(b"CREATE TABLE t (x INTEGER);\n")
+
+    assert checksum(a) == checksum(b)
+
+
+def test_1文字でも違えばチェックサムが変わる(tmp_path):
+    a, b = tmp_path / "a.sql", tmp_path / "b.sql"
+    a.write_bytes(b"CREATE TABLE t (x INTEGER);\n")
+    b.write_bytes(b"CREATE TABLE t (x INTEGER) ;\n")
+
+    assert checksum(a) != checksum(b)
+
+
+def test_改行コードの違いではチェックサムは変わらない(tmp_path):
+    lf, crlf = tmp_path / "lf.sql", tmp_path / "crlf.sql"
+    lf.write_bytes(b"-- c\nCREATE TABLE t (x INTEGER);\n")
+    crlf.write_bytes(b"-- c\r\nCREATE TABLE t (x INTEGER);\r\n")
+
+    assert checksum(lf) == checksum(crlf)
+
+
+def test_チェックサムはSHA256の16進64文字(tmp_path):
+    f = tmp_path / "a.sql"
+    f.write_bytes(b"")
+
+    assert checksum(f) == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"

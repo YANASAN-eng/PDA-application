@@ -4,8 +4,11 @@
 - 適用済みの版は `PRAGMA user_version` に記録する
 - 1 つのマイグレーションは 1 トランザクションで実行し、失敗したら丸ごと取り消す
   (そのため SQL ファイルの中に BEGIN / COMMIT を書かない)
+- main にマージしたマイグレーションは凍結する(書き換えない)。
+  tests/integration/test_migration_freeze.py がチェックサムで検査する
 """
 
+import hashlib
 import re
 import sqlite3
 from datetime import datetime
@@ -20,6 +23,11 @@ def connect(path: str | Path) -> sqlite3.Connection:
     conn = sqlite3.connect(path, isolation_level=None)
     conn.execute("PRAGMA foreign_keys = ON")  # SQLite の既定は OFF。接続ごとに必要
     return conn
+
+
+def checksum(path: Path) -> str:
+    """ファイルの SHA-256(16 進)。改行コードの違い(CRLF / LF)は無視する。"""
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def current_version(conn: sqlite3.Connection) -> int:
