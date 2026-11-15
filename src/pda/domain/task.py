@@ -1,8 +1,11 @@
 """ToDo タスクのドメインモデル(I/O なし)。"""
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
 from enum import Enum
+
+OVERDUE_PREFIX = "[超過]-"
 
 
 class Priority(Enum):
@@ -27,3 +30,19 @@ class Task:
     def __post_init__(self) -> None:
         if not self.title.strip():
             raise ValueError("タイトルは空にできません")
+
+    def is_overdue(self, today: date) -> bool:
+        """超過 = 未完了のまま期限の翌日以降になっていること(期限当日は含まない)。"""
+        return not self.done and self.due is not None and today > self.due
+
+    def display_title(self, today: date) -> str:
+        return f"{OVERDUE_PREFIX}{self.title}" if self.is_overdue(today) else self.title
+
+
+_PRIORITY_RANK = {p: i for i, p in enumerate(Priority)}  # 高=0, 中=1, 低=2
+
+
+def incomplete_by_priority(tasks: Iterable[Task]) -> list[Task]:
+    """未完了のタスクだけを優先度の高い順に返す。同じ優先度では元の順序を保つ。"""
+    # sorted は安定ソートなので、キーが等しい要素は入力の順序のまま残る
+    return sorted((t for t in tasks if not t.done), key=lambda t: _PRIORITY_RANK[t.priority])
