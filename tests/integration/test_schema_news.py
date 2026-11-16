@@ -123,3 +123,34 @@ def test_版2のデータは版3に上げても残る(tmp_path):
     assert current_version(conn) >= 3
     assert conn.execute("SELECT title, detail FROM tasks").fetchall() == [("牛乳を買う", "シチュー用")]
     conn.close()
+
+
+# --- 既読(0005) -------------------------------------------------------------
+def test_記事は最初は未読で既読日時を保存できる(db):
+    add_article(db, add_feed(db))
+    assert db.execute("SELECT read_at FROM articles").fetchone() == (None,)
+
+    db.execute("UPDATE articles SET read_at = ?", (OK_TIME,))
+
+
+@pytest.mark.parametrize("value", ["2026-11-16", "2026-02-30T06:00:00", "既読"])
+def test_既読日時はYYYY_MM_DDTHH_MM_SS以外を保存できない(db, value):
+    add_article(db, add_feed(db))
+    with pytest.raises(Bad):
+        db.execute("UPDATE articles SET read_at = ?", (value,))
+
+
+def test_版4の記事は版5に上げても残り未読になる(tmp_path):
+    v4_dir = tmp_path / "v4"
+    v4_dir.mkdir()
+    for name in ("0001_initial.sql", "0002_add_task_detail.sql", "0003_add_news.sql", "0004_add_keywords.sql"):
+        shutil.copy(MIGRATIONS_DIR / name, v4_dir)
+    conn = connect(":memory:")
+    migrate(conn, v4_dir)
+    add_article(conn, add_feed(conn), summary="要約", summarized_at=OK_TIME)
+
+    migrate(conn)
+
+    assert current_version(conn) >= 5
+    assert conn.execute("SELECT title, summary, read_at FROM articles").fetchall() == [("量子計算", "要約", None)]
+    conn.close()
