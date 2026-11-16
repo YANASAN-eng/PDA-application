@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ "メモの編集" if delete_action else "新しいメモ" }} - PDA{% endblock %}
+{% block content %}
+<h1>{{ "メモの編集" if delete_action else "新しいメモ" }}</h1>
+<form method="post" action="{{ action }}" class="panel memo-form">
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  {% with prefix="" %}{% include "_memo_form_fields.html" %}{% endwith %}
+  <p><button type="submit" class="primary">保存</button> <a href="/memos" class="pill-link">やめる</a></p>
+</form>
+{% if delete_action %}
+<form method="post" action="{{ delete_action }}" data-confirm="「{{ form.title }}」を削除しますか?"><button type="submit">このメモを削除</button></form>
+{% endif %}
+{% endblock %}

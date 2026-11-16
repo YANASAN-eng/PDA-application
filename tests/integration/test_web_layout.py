@@ -23,7 +23,12 @@ def client(tmp_path):
     return c
 
 
-PAGES = {"/tasks": "ToDo", "/tasks/done": "ToDo", "/tasks/1/edit": "ToDo", "/news": "ニュース", "/keywords": "ニュース"}
+PAGES = {
+    "/tasks": "ToDo", "/tasks/done": "ToDo", "/tasks/1/edit": "ToDo",
+    "/memos": "メモ", "/memos/new": "メモ",
+    "/news": "ニュース", "/keywords": "ニュース",
+}
+HREF = {"ToDo": "/tasks", "メモ": "/memos", "ニュース": "/news"}
 
 
 @pytest.mark.parametrize("path", PAGES)
@@ -31,7 +36,7 @@ def test_どの画面にも画面下のタブバーがある(client, path):
     html = client.get(path).text
 
     assert '<nav class="tabbar" aria-label="メイン">' in html
-    assert 'href="/tasks"' in html and 'href="/news"' in html
+    assert 'href="/tasks"' in html and 'href="/memos"' in html and 'href="/news"' in html
 
 
 @pytest.mark.parametrize("path, current", PAGES.items())
@@ -40,11 +45,10 @@ def test_今いる画面のタブが強調される(client, path, current):
     tabbar = html[html.index('<nav class="tabbar"'):]
 
     assert tabbar.count('aria-current="page"') == 1
-    href = "/tasks" if current == "ToDo" else "/news"
-    assert f'<a href="{href}" class="tab" aria-current="page">' in tabbar
+    assert f'<a href="{HREF[current]}" class="tab" aria-current="page">' in tabbar
 
 
-@pytest.mark.parametrize("label", ["今日", "予定", "メモ"])
+@pytest.mark.parametrize("label", ["今日", "予定"])
 def test_まだない画面のタブは押せない表示(client, label):
     html = client.get("/tasks").text
 

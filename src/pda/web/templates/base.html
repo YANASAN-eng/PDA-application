@@ -91,7 +91,10 @@
     /* 編集ポップアップ */
     dialog { width: min(32rem, calc(100vw - 2rem)); border: none; border-radius: 22px; padding: 18px 20px; background: var(--bg); color: var(--fg); box-shadow: 0 3px 0 var(--shadow); }
     dialog::backdrop { background: rgba(74, 53, 64, .35); }
-    dialog h2 { margin-top: 0; }
+    dialog h2 { margin: 0; }
+    .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .dialog-close { min-width: 40px; min-height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
+    .dialog-close:hover { color: var(--fg); }
     dialog input[name=title] { width: 100%; }
 
     /* キーワード: 語を横に詰めて並べる。PC ではグループを 2 列、狭い画面では 1 列 */
@@ -108,6 +111,48 @@
     .chip[hidden] { display: none; }
     .chip-delete { border: none; background: none; min-height: 32px; min-width: 32px; padding: 0; color: var(--muted); }
     .chip-delete:hover { color: var(--danger); }
+
+    /* メモ(docs/design/memo/ のモックアップ) */
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .memo-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 10px; }
+    .memo-header h1 { margin: 0; }
+    .memo-count { margin: 0; font-size: 13px; font-weight: 700; color: #7A6320; }
+    .memo-new {
+      width: 48px; height: 48px; border-radius: 18px; background: var(--accent); color: #FFFFFF;
+      display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 #E8D79A;
+    }
+    .memo-new:hover { color: #FFFFFF; filter: brightness(.95); }
+    .memo-search {
+      display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 16px; margin: 4px 0 10px;
+      background: var(--surface); border-radius: 999px; box-shadow: 0 3px 0 var(--shadow); color: #7A6320;
+    }
+    .memo-search input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; min-height: 44px; padding: 0; font-size: 15px; }
+    .tag-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .tag-chip {
+      display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border-radius: 999px;
+      border: 2px solid var(--line); background: var(--surface); color: var(--fg-soft); font-size: 13px; font-weight: 700;
+    }
+    .tag-chip[aria-pressed="true"] { background: var(--fg); border-color: var(--fg); color: #FFFFFF; }
+    .memo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    @media (min-width: 40rem) { .memo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .memo-card {
+      background: var(--card-bg); border-radius: var(--radius-card); padding: 14px 14px 12px; min-height: 150px;
+      display: flex; flex-direction: column; gap: 6px; color: var(--fg); box-shadow: 0 3px 0 rgba(74, 53, 64, .12);
+      transform: rotate(var(--tilt));
+    }
+    .memo-card:hover { color: var(--fg); transform: rotate(0deg); }
+    .memo-card[hidden] { display: none; }
+    .memo-title { font-size: 15px; font-weight: 900; line-height: 1.4; }
+    .memo-body {
+      flex: 1; font-size: 12px; line-height: 1.6; color: var(--fg-soft); white-space: pre-wrap;
+      display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .memo-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+    .memo-tag { font-size: 11px; font-weight: 700; background: rgba(255, 255, 255, .75); border-radius: 999px; padding: 1px 8px; color: var(--fg-soft); }
+    .memo-updated { font-size: 11px; color: #6E5A64; }
+    .memo-form input { width: 100%; }
+    .memo-form textarea { min-height: 14rem; }
+    dialog.memo-dialog { width: min(44rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); }
 
     /* 画面下のタブバー(モックアップのナビ) */
     .tabbar {
@@ -130,12 +175,12 @@
 
   {# 画面下のタブバー。今いる画面は aria-current="page"。まだない画面は押せない表示(準備中) #}
   {% set path = request.url.path %}
-  {% set section = "tasks" if path.startswith("/tasks") else ("news" if path.startswith("/news") or path.startswith("/keywords") else "") %}
+  {% set section = "tasks" if path.startswith("/tasks") else ("memos" if path.startswith("/memos") else ("news" if path.startswith("/news") or path.startswith("/keywords") else "")) %}
   <nav class="tabbar" aria-label="メイン">
     <span class="tab" aria-disabled="true" title="準備中"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>今日</span>
     <a href="/tasks" class="tab"{% if section == "tasks" %} aria-current="page"{% endif %}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"></rect><path d="M8 12l3 3 5-6"></path></svg>ToDo</a>
     <span class="tab" aria-disabled="true" title="準備中"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="4"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>予定</span>
-    <span class="tab" aria-disabled="true" title="準備中"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M8 12h8M8 16h5"></path></svg>メモ</span>
+    <a href="/memos" class="tab"{% if section == "memos" %} aria-current="page"{% endif %}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M8 12h8M8 16h5"></path></svg>メモ</a>
     <a href="/news" class="tab"{% if section == "news" %} aria-current="page"{% endif %}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="4"></rect><path d="M7 9h10M7 13h10M7 17h6"></path></svg>ニュース</a>
   </nav>
 

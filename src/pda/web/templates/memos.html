@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}メモ - PDA{% endblock %}
+{% block content %}
+<header class="memo-header">
+  <div>
+    <p class="memo-count"><span id="memo-count">{{ memos|length }}</span> まい</p>
+    <h1>めも</h1>
+  </div>
+  <a href="/memos/new" class="memo-new" aria-label="新しいメモ" title="新しいメモ"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg></a>
+</header>
+
+<form method="get" action="/memos" class="memo-search" role="search">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+  <label for="memo-search" class="visually-hidden">メモを検索</label>
+  <input id="memo-search" name="q" type="search" value="{{ q }}" placeholder="タイトル・本文でさがす" autocomplete="off">
+  {% if tag %}<input type="hidden" name="tag" value="{{ tag }}">{% endif %}
+</form>
+
+<div class="tag-filter">
+  <a href="/memos" class="tag-chip" aria-pressed="{{ 'false' if tag else 'true' }}">すべて</a>
+  {% for name, n in chips %}
+  <a href="/memos?tag={{ name|urlencode }}" class="tag-chip" aria-pressed="{{ 'true' if name == tag else 'false' }}">#{{ name }}</a>
+  {% endfor %}
+</div>
+
+<div class="memo-grid">
+  {% for m in memos %}
+  {% set tags = m.tags|sort %}
+  <a href="/memos/{{ m.id }}/edit" class="memo-card" data-title="{{ m.title }}" data-body="{{ m.body }}" data-tags="{{ tags|join(' ') }}" data-delete="/memos/{{ m.id }}/delete" style="--card-bg: var(--{{ ['pink', 'lavender', 'mint', 'yellow'][loop.index0 % 4] }}); --tilt: {{ ['-1deg', '0.8deg', '0.5deg', '-0.7deg'][loop.index0 % 4] }}">
+    <span class="memo-title">{{ m.title }}</span>
+    <span class="memo-body">{{ m.body }}</span>
+    <span class="memo-tags">{% for t in tags %}<span class="memo-tag">#{{ t }}</span>{% endfor %}</span>
+    <span class="memo-updated">{{ m.updated_at.strftime("%m/%d %H:%M") }}</span>
+  </a>
+  {% endfor %}
+</div>
+<p class="meta" id="memo-empty"{% if memos %} hidden{% endif %}>{{ "該当するメモはありません" if (q or tag) else "まだメモはありません" }}</p>
+{% endblock %}
+
+{% block scripts %}
+<dialog id="memo-dialog" class="memo-dialog" aria-labelledby="memo-dialog-heading">
+  <form method="post" action="/memos" class="memo-form">
+    <div class="dialog-head"><h2 id="memo-dialog-heading">新しいメモ</h2><button type="button" class="dialog-close" aria-label="閉じる" title="閉じる" data-close><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+    {% with prefix="dialog-", form={"title": "", "body": "", "tags": ""} %}{% include "_memo_form_fields.html" %}{% endwith %}
+    <p><button type="submit" class="primary">保存</button></p>
+  </form>
+  <form method="post" action="" id="memo-dialog-delete" data-confirm="" hidden><button type="submit">このメモを削除</button></form>
+</dialog>
+<script>
+  (() => {
+    // 検索欄: 打つたびにタイトル・本文で絞り込む(大文字小文字は区別しない。サーバー側の search_memos と同じ規則)
+    const search = document.getElementById("memo-search");
+    const cards = document.querySelectorAll(".memo-card");
+    const count = document.getElementById("memo-count");
+    const empty = document.getElementById("memo-empty");
+    search.addEventListener("input", () => {
+      const q = search.value.trim().toLowerCase();
+      let shown = 0;
+      cards.forEach((card) => {
+        const text = (card.dataset.title + "\n" + card.dataset.body).toLowerCase();
+        card.hidden = !text.includes(q);
+        if (!card.hidden) shown++;
+      });
+      count.textContent = shown;
+      empty.hidden = shown > 0;
+    });
+
+    // 新規作成・編集はポップアップで。使えないブラウザではリンクがそのままページを開く
+    const dialog = document.getElementById("memo-dialog");
+    if (typeof dialog.showModal !== "function") return;
+    const form = dialog.querySelector("form.memo-form");
+    const heading = document.getElementById("memo-dialog-heading");
+    const del = document.getElementById("memo-dialog-delete");
+    const field = (name) => document.getElementById("dialog-" + name);
+    const open = (values, action, deleteAction) => {
+      for (const name of ["title", "body", "tags"]) field(name).value = values[name] || "";
+      form.action = action;
+      heading.textContent = deleteAction ? "メモの編集" : "新しいメモ";
+      del.hidden = !deleteAction;
+      if (deleteAction) {
+        del.action = deleteAction;
+        del.dataset.confirm = `「${values.title}」を削除しますか?`;
+      }
+      dialog.showModal();
+      field("title").focus();
+    };
+    document.addEventListener("click", (e) => {
+      const card = e.target.closest("a.memo-card");
+      const add = e.target.closest("a.memo-new");
+      if (card) { e.preventDefault(); open(card.dataset, card.href, card.dataset.delete); }
+      else if (add) { e.preventDefault(); open({}, "/memos", null); }
+    });
+    dialog.querySelector("[data-close]").addEventListener("click", () => dialog.close());
+  })();
+</script>
+{% endblock %}
