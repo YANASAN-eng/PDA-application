@@ -3,12 +3,12 @@
 作業を中断・再開するときの引き継ぎ用。**再開したらまずここを読む。** 区切りごとに更新する。
 
 ## 最終更新: 2026-11-16
-- `main` は全テスト緑(550 件)。作業中のブランチなし
+- `main` は全テスト緑(620 件)。作業中のブランチなし
 - 再開時の確認コマンド:
   ```powershell
   cd C:\development\pda
   .\.venv\Scripts\Activate.ps1
-  pytest -q            # 550 passed のはず
+  pytest -q            # 620 passed のはず
   git log --oneline --graph -10
   ```
 
@@ -22,7 +22,7 @@
 
 基盤:
 - マイグレーションの仕組み `src/pda/db/migrate.py`(1 ファイル = 1 トランザクション、適用前バックアップ、番号検査)
-- マイグレーションの凍結検査 `tests/integration/test_migration_freeze.py`(`0001`〜`0005` 登録済み)
+- マイグレーションの凍結検査 `tests/integration/test_migration_freeze.py`(`0001`〜`0006` 登録済み)
 - ニュースの処理(`src/pda/news/`): 絞り込みと優先順位 `filter.py` / 要約器 `summarizer.py`(モック)/ RSS・Atom の解析と取得 `fetcher.py` / 日次処理 `daily.py`
 - ニュースの入口 `python -m pda.news_job`、設定 `src/pda/config.py`(フィード: Qiita・Zenn の数学・物理系タグ、arXiv quant-ph / cs.IT / cs.LG)
 - キーワードは DB で管理し、画面 `/keywords` で追加・削除(`0004`)
@@ -43,7 +43,8 @@
 - ⚠ 画面の JavaScript(キーワードの絞り込み・ToDo の編集ポップアップ・自動既読)はブラウザでの確認待ち
 - デザインの反映: `docs/design/`(参照用モックアップ)、色・書体・カード・画面下のタブバー(`base.html` の CSS 変数)
 - メモの画面 `/memos`(`feature/web-memo`)。ポップアップ・検索はユーザーがブラウザで確認済み。ポップアップは × で閉じる
-- 予定の画面 `/events`(今日から先を日ごと・過去の予定・ポップアップ)、今日の画面 `/today`(最初の画面)。⚠ 予定のポップアップ(終日で時刻欄が消える等)はブラウザでの確認待ち
+- 予定の画面 `/events`(今日から先を日ごと・過去の予定・ポップアップ)、今日の画面 `/today`(最初の画面)。予定のポップアップはユーザーがブラウザで確認済み
+- 日課(Daily): 曜日を選べる日課、今日の画面でチェック(進み具合つき)、管理画面 `/routines`。`0006`(`routines`・`routine_weekdays`・`routine_checks`)。⚠ 今日の画面のチェック・曜日の選択の見た目はブラウザでの確認待ち
 
 ## その後の候補(順番は未決定)
 - 平日に `python -m pda.news_job` を本物で動かし、arXiv の件数・概要文の形を確かめる(土日は arXiv が空)
