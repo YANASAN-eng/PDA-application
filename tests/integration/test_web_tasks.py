@@ -139,3 +139,48 @@ def test_一覧の各タスクに完了ボタンがある(client, tasks):
 
 def test_存在しないタスクは完了にできない(client):
     assert client.post("/tasks/999/done").status_code == 404
+
+
+# --- 完了済み ----------------------------------------------------------------
+def test_完了済みページには完了したタスクだけが作成日時の新しい順に出る(client, tasks):
+    tasks.add(task("古い", done=True, created_at=datetime(2026, 11, 1, 9, 0)))
+    tasks.add(task("まだ", done=False))
+    tasks.add(task("新しい", done=True, created_at=datetime(2026, 11, 2, 9, 0)))
+
+    html = client.get("/tasks/done").text
+
+    assert appear_in_order(html, "新しい", "古い")
+    assert "まだ" not in html
+
+
+def test_完了済みのタスクは期限を過ぎていても超過の印が付かない(client, tasks):
+    tasks.add(task("済んだ", due=date(2026, 11, 1), done=True))
+
+    assert "【超過】" not in client.get("/tasks/done").text
+
+
+def test_未完了に戻すと完了済みページから消えて一覧に戻る(client, tasks):
+    t = task("論文を読む", done=True)
+    tasks.add(t)
+
+    res = client.post(f"/tasks/{t.id}/undone", follow_redirects=False)
+
+    assert res.status_code == 303 and res.headers["location"] == "/tasks/done"
+    assert tasks.get(t.id).done is False
+    assert "論文を読む" in client.get("/tasks").text
+
+
+def test_完了済みページの各タスクに未完了に戻すボタンがある(client, tasks):
+    t = task("論文を読む", done=True)
+    tasks.add(t)
+
+    assert f'action="/tasks/{t.id}/undone"' in client.get("/tasks/done").text
+
+
+def test_存在しないタスクは未完了に戻せない(client):
+    assert client.post("/tasks/999/undone").status_code == 404
+
+
+def test_一覧と完了済みページは互いにリンクしている(client):
+    assert 'href="/tasks/done"' in client.get("/tasks").text
+    assert 'href="/tasks"' in client.get("/tasks/done").text

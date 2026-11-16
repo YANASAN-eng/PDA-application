@@ -20,7 +20,7 @@ from fastapi.templating import Jinja2Templates
 
 from pda.db.migrate import connect, migrate_file
 from pda.db.task_repository import TaskRepository
-from pda.domain.task import Priority, Task, incomplete_by_priority
+from pda.domain.task import Priority, Task, completed_by_newest, incomplete_by_priority
 
 TEMPLATES = Jinja2Templates(directory=Path(__file__).parent / "templates")
 DEFAULT_DB = Path("data/pda.db")
@@ -82,16 +82,30 @@ def create_app(db_path: Path, *, clock: Callable[[], datetime] = _system_clock) 
             TaskRepository(conn).add(task)
         return RedirectResponse("/tasks", status_code=303)
 
-    @app.post("/tasks/{task_id}/done")
-    def task_done(task_id: int):
+    @app.get("/tasks/done")
+    def task_done_list(request: Request):
+        with open_db() as conn:
+            items = completed_by_newest(TaskRepository(conn).list_all())
+        return TEMPLATES.TemplateResponse(request, "tasks_done.html", {"tasks": items})
+
+    def set_done(task_id: int, done: bool) -> None:
         with open_db() as conn:
             repo = TaskRepository(conn)
             task = repo.get(task_id)
             if task is None:
                 raise HTTPException(status_code=404, detail="タスクが見つかりません")
-            task.done = True
+            task.done = done
             repo.update(task)
+
+    @app.post("/tasks/{task_id}/done")
+    def task_done(task_id: int):
+        set_done(task_id, True)
         return RedirectResponse("/tasks", status_code=303)
+
+    @app.post("/tasks/{task_id}/undone")
+    def task_undone(task_id: int):
+        set_done(task_id, False)
+        return RedirectResponse("/tasks/done", status_code=303)
 
     return app
 
