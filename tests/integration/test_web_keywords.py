@@ -103,3 +103,32 @@ def test_削除するとキーワードの画面へ戻り消えている(client,
 
 def test_存在しないキーワードは削除できない(client):
     assert client.post("/keywords/999/delete").status_code == 404
+
+
+# --- 横に詰めた表示と絞り込み(JavaScript)のための構造 ------------------------------
+def test_語は横に詰めるチップとして並び語をdata属性に持つ(client, keywords):
+    keywords.add(Keyword(group=IT, word="AI"))
+
+    html = client.get("/keywords").text
+
+    assert 'class="keyword-groups"' in html
+    assert '<li class="chip" data-word="AI">' in html
+
+
+def test_data属性の語はエスケープされる(client, keywords):
+    keywords.add(Keyword(group=IT, word='a"b<c>'))
+
+    assert 'data-word="a&#34;b&lt;c&gt;"' in client.get("/keywords").text
+
+
+def test_削除ボタンは何を消すかを読み上げ用の名前に持つ(client, keywords):
+    keywords.add(Keyword(group=IT, word="AI"))
+
+    assert 'aria-label="「AI」を削除"' in client.get("/keywords").text
+
+
+def test_入力欄で一覧を絞り込むスクリプトがある(client):
+    html = client.get("/keywords").text
+
+    assert 'id="keyword-word"' in html and 'id="keyword-status"' in html
+    assert 'getElementById("keyword-word")' in html
