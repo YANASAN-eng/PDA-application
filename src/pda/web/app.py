@@ -25,7 +25,7 @@ from pda.db.keyword_repository import KeywordRepository
 from pda.db.migrate import connect, migrate_file
 from pda.db.memo_repository import MemoRepository
 from pda.db.task_repository import TaskRepository
-from pda.domain.event import AllDayEvent, Event, TimedEvent, past_by_day, upcoming_by_day
+from pda.domain.event import AllDayEvent, Event, TimedEvent, events_on, past_by_day, upcoming_by_day
 from pda.domain.keyword import Keyword, KeywordGroup, as_groups
 from pda.domain.memo import Memo, memos_by_updated, parse_tag_input, search_memos, tag_counts, with_tag
 from pda.domain.task import Priority, Task, completed_by_newest, incomplete_by_priority
@@ -64,7 +64,15 @@ def create_app(db_path: Path, *, clock: Callable[[], datetime] = _system_clock) 
 
     @app.get("/")
     def home():
-        return RedirectResponse("/tasks", status_code=303)
+        return RedirectResponse("/today", status_code=303)  # 最初の画面は「今日」(2026-11-16 決定)
+
+    @app.get("/today")
+    def today_page(request: Request):
+        """今日の予定(2026-11-16 決定: 今日の画面には予定だけを出す)。"""
+        today = clock().date()
+        with open_db() as conn:
+            items = events_on(today, EventRepository(conn).list_all())
+        return TEMPLATES.TemplateResponse(request, "today.html", {"today": today, "events": items})
 
     def render_task_list(request: Request, *, form: dict | None = None, error: str | None = None, status: int = 200):
         with open_db() as conn:

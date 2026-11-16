@@ -40,10 +40,7 @@ def appear_in_order(html: str, *texts: str) -> bool:
 
 
 # --- 一覧 ------------------------------------------------------------------
-def test_トップページはToDo一覧へ移動する(client):
-    res = client.get("/", follow_redirects=False)
-
-    assert res.status_code in (302, 303, 307) and res.headers["location"] == "/tasks"
+# トップページ(/)の移動先は 2026-11-16 に「今日」へ変更(tests/integration/test_web_today.py)
 
 
 def test_一覧には未完了のタスクだけが優先度の高い順に出る(client, tasks):

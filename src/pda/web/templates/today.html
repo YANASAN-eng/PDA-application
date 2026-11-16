@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}今日 - PDA{% endblock %}
+{% block content %}
+<h1>今日</h1>
+<p class="today-date">{{ jp_day(today) }}</p>
+<p class="page-actions"><a href="/events" class="pill-link">予定をすべて見る</a></p>
+{% if events %}
+<ul class="items events">
+  {% for e in events %}
+  {% include "_event_card.html" %}
+  {% endfor %}
+</ul>
+{% else %}
+<p class="meta">今日の予定はありません</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% include "_event_dialog.html" %}
+{% endblock %}

@@ -15,13 +15,7 @@
 <h2>{% if day == today %}今日 {% endif %}{{ jp_day(day) }}</h2>
 <ul class="items events">
   {% for e in items %}
-  {% set f = event_form(e) %}
-  <li><a href="/events/{{ e.id }}/edit" class="event-card" data-title="{{ f.title }}" data-all-day="{{ '1' if f.all_day else '' }}" data-start-date="{{ f.start_date }}" data-start-time="{{ f.start_time }}" data-end-date="{{ f.end_date }}" data-end-time="{{ f.end_time }}" data-location="{{ f.location }}" data-memo="{{ f.memo }}" data-delete="/events/{{ e.id }}/delete">
-    <span class="event-time">{{ event_time_label(e) }}</span>
-    <span class="title">{{ e.title }}</span>
-    {% if e.location %}<span class="meta">場所: {{ e.location }}</span>{% endif %}
-    {% if e.memo %}<span class="detail">{{ e.memo }}</span>{% endif %}
-  </a></li>
+  {% include "_event_card.html" %}
   {% endfor %}
 </ul>
 {% else %}
@@ -38,47 +32,5 @@
 {% endblock %}
 
 {% block scripts %}
-<dialog id="event-dialog" class="event-dialog" aria-labelledby="event-dialog-heading">
-  <form method="post" action="/events" class="event-form">
-    <div class="dialog-head"><h2 id="event-dialog-heading">予定の追加</h2><button type="button" class="dialog-close" aria-label="閉じる" title="閉じる" data-close><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
-    {% with prefix="dialog-", form={"title": "", "all_day": False, "start_date": "", "start_time": "", "end_date": "", "end_time": "", "location": "", "memo": ""} %}{% include "_event_form_fields.html" %}{% endwith %}
-    <p><button type="submit" class="primary">保存</button></p>
-  </form>
-  <form method="post" action="" id="event-dialog-delete" data-confirm="" hidden><button type="submit">この予定を削除</button></form>
-</dialog>
-<script>
-  // 追加・編集はポップアップで。使えないブラウザではリンクがそのままページを開く
-  (() => {
-    const dialog = document.getElementById("event-dialog");
-    if (typeof dialog.showModal !== "function") return;
-    const form = dialog.querySelector("form.event-form");
-    const heading = document.getElementById("event-dialog-heading");
-    const del = document.getElementById("event-dialog-delete");
-    const field = (name) => document.getElementById("dialog-" + name);
-    const names = { title: "title", startDate: "start_date", startTime: "start_time", endDate: "end_date",
-                    endTime: "end_time", location: "location", memo: "memo" };
-    const open = (values, action, deleteAction) => {
-      for (const [key, name] of Object.entries(names)) field(name).value = values[key] || "";
-      const allDay = field("all_day");
-      allDay.checked = values.allDay === "1";
-      allDay.dispatchEvent(new Event("change", { bubbles: true }));  // 時刻の欄の表示を合わせる
-      form.action = action;
-      heading.textContent = deleteAction ? "予定の編集" : "予定の追加";
-      del.hidden = !deleteAction;
-      if (deleteAction) {
-        del.action = deleteAction;
-        del.dataset.confirm = `「${values.title}」を削除しますか?`;
-      }
-      dialog.showModal();
-      field("title").focus();
-    };
-    document.addEventListener("click", (e) => {
-      const card = e.target.closest("a.event-card");
-      const add = e.target.closest("a.event-new");
-      if (card) { e.preventDefault(); open(card.dataset, card.href, card.dataset.delete); }
-      else if (add) { e.preventDefault(); open({ startDate: add.dataset.today }, "/events", null); }
-    });
-    dialog.querySelector("[data-close]").addEventListener("click", () => dialog.close());
-  })();
-</script>
+{% include "_event_dialog.html" %}
 {% endblock %}

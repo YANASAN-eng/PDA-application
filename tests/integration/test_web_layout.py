@@ -24,12 +24,13 @@ def client(tmp_path):
 
 
 PAGES = {
+    "/today": "今日",
     "/tasks": "ToDo", "/tasks/done": "ToDo", "/tasks/1/edit": "ToDo",
     "/events": "予定", "/events/past": "予定", "/events/new": "予定",
     "/memos": "メモ", "/memos/new": "メモ",
     "/news": "ニュース", "/keywords": "ニュース",
 }
-HREF = {"ToDo": "/tasks", "予定": "/events", "メモ": "/memos", "ニュース": "/news"}
+HREF = {"今日": "/today", "ToDo": "/tasks", "予定": "/events", "メモ": "/memos", "ニュース": "/news"}
 
 
 @pytest.mark.parametrize("path", PAGES)
@@ -37,7 +38,8 @@ def test_どの画面にも画面下のタブバーがある(client, path):
     html = client.get(path).text
 
     assert '<nav class="tabbar" aria-label="メイン">' in html
-    assert 'href="/tasks"' in html and 'href="/memos"' in html and 'href="/news"' in html
+    for href in ("/today", "/tasks", "/events", "/memos", "/news"):
+        assert f'href="{href}"' in html
 
 
 @pytest.mark.parametrize("path, current", PAGES.items())
@@ -49,13 +51,9 @@ def test_今いる画面のタブが強調される(client, path, current):
     assert f'<a href="{HREF[current]}" class="tab" aria-current="page">' in tabbar
 
 
-@pytest.mark.parametrize("label", ["今日"])
-def test_まだない画面のタブは押せない表示(client, label):
-    html = client.get("/tasks").text
-
-    assert f'<span class="tab" aria-disabled="true" title="準備中">' in html
-    tabbar = html[html.index('<nav class="tabbar"'):]
-    assert label in tabbar
+def test_準備中のタブはもうない(client):
+    # 2026-11-16 に「今日」ができて、タブバーの 5 つの画面がすべて揃った
+    assert 'aria-disabled="true"' not in client.get("/tasks").text
 
 
 def test_デザインの色と書体を使う(client):
@@ -65,7 +63,7 @@ def test_デザインの色と書体を使う(client):
     assert "Zen+Maru+Gothic" in html
 
 
-@pytest.mark.parametrize("path, label", [("/tasks", "ToDo"), ("/events", "予定"), ("/memos", "メモ"), ("/news", "ニュース")])
+@pytest.mark.parametrize("path, label", [("/today", "今日"), ("/tasks", "ToDo"), ("/events", "予定"), ("/memos", "メモ"), ("/news", "ニュース")])
 def test_画面の見出しはタブの名前と同じ表記(client, path, label):
     # 2026-11-16: タブは「メモ」なのに見出しが「めも」で統一感がなかった(ユーザー指摘)
     assert f"<h1>{label}</h1>" in client.get(path).text

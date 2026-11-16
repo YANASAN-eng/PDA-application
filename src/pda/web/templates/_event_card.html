@@ -1,0 +1,8 @@
+{# 予定 1 件のカード(予定の画面と今日の画面で共有)。e が予定。data-* は編集ポップアップに値を渡す #}
+  {% set f = event_form(e) %}
+  <li><a href="/events/{{ e.id }}/edit" class="event-card" data-title="{{ f.title }}" data-all-day="{{ '1' if f.all_day else '' }}" data-start-date="{{ f.start_date }}" data-start-time="{{ f.start_time }}" data-end-date="{{ f.end_date }}" data-end-time="{{ f.end_time }}" data-location="{{ f.location }}" data-memo="{{ f.memo }}" data-delete="/events/{{ e.id }}/delete">
+    <span class="event-time">{{ event_time_label(e) }}</span>
+    <span class="title">{{ e.title }}</span>
+    {% if e.location %}<span class="meta">場所: {{ e.location }}</span>{% endif %}
+    {% if e.memo %}<span class="detail">{{ e.memo }}</span>{% endif %}
+  </a></li>
