@@ -10,6 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi",
     "jinja2",
+    "python-multipart",  # FastAPI でフォーム送信を受け取るのに必要
     "uvicorn",
     "feedparser",
     "anthropic",
