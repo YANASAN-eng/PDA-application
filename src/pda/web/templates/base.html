@@ -114,14 +114,25 @@
 
     /* メモ(docs/design/memo/ のモックアップ) */
     .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-    .memo-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 10px; }
-    .memo-header h1 { margin: 0; }
+    .memo-header, .page-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 10px; }
+    .memo-header h1, .page-header h1 { margin: 0; }
     .memo-count { margin: 0; font-size: 13px; font-weight: 700; color: #7A6320; }
-    .memo-new {
+    .memo-new, .event-new {
       width: 48px; height: 48px; border-radius: 18px; background: var(--accent); color: #FFFFFF;
       display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 #E8D79A;
     }
-    .memo-new:hover { color: #FFFFFF; filter: brightness(.95); }
+    .memo-new:hover, .event-new:hover { color: #FFFFFF; filter: brightness(.95); }
+
+    /* 予定 */
+    ul.items.events li { padding: 0; }
+    .event-card { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; width: 100%; padding: 14px 14px 12px; color: var(--fg); }
+    .event-card:hover { color: var(--fg); }
+    .event-time { font-size: 13px; font-weight: 900; color: var(--accent); min-width: 4.5rem; }
+    .date-row { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+    .check { display: inline-flex; align-items: center; gap: 6px; }
+    .check input { min-height: auto; width: 20px; height: 20px; }
+    .event-form input[name=title], .event-form input[name=location] { width: 100%; }
+    .time-field[hidden] { display: none; }
     .memo-search {
       display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 16px; margin: 4px 0 10px;
       background: var(--surface); border-radius: 999px; box-shadow: 0 3px 0 var(--shadow); color: #7A6320;
@@ -175,11 +186,11 @@
 
   {# 画面下のタブバー。今いる画面は aria-current="page"。まだない画面は押せない表示(準備中) #}
   {% set path = request.url.path %}
-  {% set section = "tasks" if path.startswith("/tasks") else ("memos" if path.startswith("/memos") else ("news" if path.startswith("/news") or path.startswith("/keywords") else "")) %}
+  {% set section = "tasks" if path.startswith("/tasks") else ("events" if path.startswith("/events") else ("memos" if path.startswith("/memos") else ("news" if path.startswith("/news") or path.startswith("/keywords") else ""))) %}
   <nav class="tabbar" aria-label="メイン">
     <span class="tab" aria-disabled="true" title="準備中"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>今日</span>
     <a href="/tasks" class="tab"{% if section == "tasks" %} aria-current="page"{% endif %}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"></rect><path d="M8 12l3 3 5-6"></path></svg>ToDo</a>
-    <span class="tab" aria-disabled="true" title="準備中"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="4"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>予定</span>
+    <a href="/events" class="tab"{% if section == "events" %} aria-current="page"{% endif %}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="4"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>予定</a>
     <a href="/memos" class="tab"{% if section == "memos" %} aria-current="page"{% endif %}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M8 12h8M8 16h5"></path></svg>メモ</a>
     <a href="/news" class="tab"{% if section == "news" %} aria-current="page"{% endif %}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="4"></rect><path d="M7 9h10M7 13h10M7 17h6"></path></svg>ニュース</a>
   </nav>
@@ -191,6 +202,16 @@
       const message = e.target.dataset.confirm;
       if (message && !confirm(message)) e.preventDefault();
     });
+  </script>
+  <script>
+    // 予定のフォーム: 「終日」にチェックを入れると時刻の欄(.time-field)を隠す。サーバーも終日なら時刻を無視する
+    const syncAllDay = (box) => {
+      box.form.querySelectorAll(".time-field").forEach((el) => { el.hidden = box.checked; });
+    };
+    document.addEventListener("change", (e) => {
+      if (e.target.name === "all_day") syncAllDay(e.target);
+    });
+    document.querySelectorAll('input[name="all_day"]').forEach(syncAllDay);
   </script>
   {% block scripts %}{% endblock %}
 </body>

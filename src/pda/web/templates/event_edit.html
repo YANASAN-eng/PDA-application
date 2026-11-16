@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ "予定の編集" if delete_action else "予定の追加" }} - PDA{% endblock %}
+{% block content %}
+<h1>{{ "予定の編集" if delete_action else "予定の追加" }}</h1>
+<form method="post" action="{{ action }}" class="panel event-form">
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  {% with prefix="" %}{% include "_event_form_fields.html" %}{% endwith %}
+  <p><button type="submit" class="primary">保存</button> <a href="/events" class="pill-link">やめる</a></p>
+</form>
+{% if delete_action %}
+<form method="post" action="{{ delete_action }}" data-confirm="「{{ form.title }}」を削除しますか?"><button type="submit">この予定を削除</button></form>
+{% endif %}
+{% endblock %}

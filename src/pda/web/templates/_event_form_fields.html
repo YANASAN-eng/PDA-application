@@ -1,0 +1,14 @@
+{# 予定の入力欄(追加・編集ページとポップアップで共有)。prefix は欄の id の接頭辞。
+   「終日」にチェックを入れると .time-field(時刻の欄)が隠れる(base.html の共通スクリプト) #}
+<p><label>タイトル <input name="title" id="{{ prefix }}title" value="{{ form.title }}" required></label></p>
+<p><label class="check"><input type="checkbox" name="all_day" value="1" id="{{ prefix }}all_day"{% if form.all_day %} checked{% endif %}> 終日</label></p>
+<p class="date-row">
+  <label>開始 <input type="date" name="start_date" id="{{ prefix }}start_date" value="{{ form.start_date }}" required></label>
+  <label class="time-field">時刻 <input type="time" name="start_time" id="{{ prefix }}start_time" value="{{ form.start_time }}"></label>
+</p>
+<p class="date-row">
+  <label>終了(任意) <input type="date" name="end_date" id="{{ prefix }}end_date" value="{{ form.end_date }}"></label>
+  <label class="time-field">時刻 <input type="time" name="end_time" id="{{ prefix }}end_time" value="{{ form.end_time }}"></label>
+</p>
+<p><label>場所(任意) <input name="location" id="{{ prefix }}location" value="{{ form.location }}"></label></p>
+<p><label>メモ(任意)<br><textarea name="memo" id="{{ prefix }}memo" rows="3">{{ form.memo }}</textarea></label></p>
