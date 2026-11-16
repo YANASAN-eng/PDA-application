@@ -1,0 +1,13 @@
+{# タスクの入力欄(追加フォーム・編集ページ・編集ポップアップで共有)。prefix は欄の id の接頭辞 #}
+<p><label>タイトル <input name="title" id="{{ prefix }}title" value="{{ form.title }}" required></label></p>
+<p>
+  <label>優先度
+    <select name="priority" id="{{ prefix }}priority">
+      {% for p in priorities %}
+      <option value="{{ p.name }}"{% if p.name == form.priority %} selected{% endif %}>{{ p.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>期限 <input type="date" name="due" id="{{ prefix }}due" value="{{ form.due }}"></label>
+</p>
+<p><label>詳細(任意)<br><textarea name="detail" id="{{ prefix }}detail" rows="3" placeholder="目的や補足(例: シチュー用)">{{ form.detail }}</textarea></label></p>

@@ -1,21 +1,11 @@
 {% extends "base.html" %}
 {% block title %}ToDo - PDA{% endblock %}
+
 {% block content %}
 <h1>ToDo</h1>
 <form method="post" action="/tasks">
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
-  <p><label>タイトル <input name="title" value="{{ form.title }}" required></label></p>
-  <p>
-    <label>優先度
-      <select name="priority">
-        {% for p in priorities %}
-        <option value="{{ p.name }}"{% if p.name == form.priority %} selected{% endif %}>{{ p.label }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>期限 <input type="date" name="due" value="{{ form.due }}"></label>
-  </p>
-  <p><label>詳細(任意)<br><textarea name="detail" rows="3" placeholder="目的や補足(例: シチュー用)">{{ form.detail }}</textarea></label></p>
+  {% with prefix="" %}{% include "_task_form_fields.html" %}{% endwith %}
   <p><button type="submit">追加</button></p>
 </form>
 <ul class="items">
@@ -24,6 +14,7 @@
     <span class="title{% if t.is_overdue(today) %} overdue{% endif %}">{{ t.display_title(today) }}</span>
     <span class="meta">優先度 {{ t.priority.label }}{% if t.due %} / 期限 {{ t.due.isoformat() }}{% endif %}</span>
     {% if t.detail %}<span class="detail">{{ t.detail }}</span>{% endif %}
+    <a href="/tasks/{{ t.id }}/edit" class="task-edit" data-title="{{ t.title }}" data-priority="{{ t.priority.name }}" data-due="{{ t.due.isoformat() if t.due else '' }}" data-detail="{{ t.detail }}">編集</a>
     <form class="inline" method="post" action="/tasks/{{ t.id }}/done"><button type="submit">完了</button></form>
     <form class="inline" method="post" action="/tasks/{{ t.id }}/delete" data-confirm="「{{ t.title }}」を削除しますか?"><button type="submit">削除</button></form>
   </li>
@@ -33,3 +24,5 @@
 </ul>
 <p><a href="/tasks/done">完了済みの一覧へ</a></p>
 {% endblock %}
+
+{% block scripts %}{% include "_task_edit_dialog.html" %}{% endblock %}

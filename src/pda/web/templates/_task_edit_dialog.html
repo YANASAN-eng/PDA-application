@@ -1,0 +1,27 @@
+{# 編集ポップアップ。一覧の「編集」リンク(class="task-edit")の data-* から値を流し込む。
+   JavaScript が動かないときは、リンクがそのまま編集ページ(/tasks/{id}/edit)を開く #}
+<dialog id="task-edit-dialog" aria-labelledby="task-edit-heading">
+  <form method="post" action="">
+    <h2 id="task-edit-heading">タスクの編集</h2>
+    {% with prefix="edit-", form={"title": "", "priority": "MEDIUM", "due": "", "detail": ""} %}{% include "_task_form_fields.html" %}{% endwith %}
+    <p><button type="submit">保存</button> <button type="button" data-close>やめる</button></p>
+  </form>
+</dialog>
+<script>
+  (() => {
+    const dialog = document.getElementById("task-edit-dialog");
+    if (!dialog || typeof dialog.showModal !== "function") return;  // 使えないブラウザでは編集ページへ
+    const form = dialog.querySelector("form");
+    const field = (name) => document.getElementById("edit-" + name);
+    document.addEventListener("click", (e) => {
+      const link = e.target.closest("a.task-edit");
+      if (!link) return;
+      e.preventDefault();
+      for (const name of ["title", "priority", "due", "detail"]) field(name).value = link.dataset[name];
+      form.action = link.href;
+      dialog.showModal();
+      field("title").focus();
+    });
+    dialog.querySelector("[data-close]").addEventListener("click", () => dialog.close());
+  })();
+</script>

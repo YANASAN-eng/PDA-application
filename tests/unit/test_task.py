@@ -138,3 +138,32 @@ def test_詳細を付けて作れる():
     t = Task(title="牛乳を買う", priority=Priority.LOW, created_at=T0, detail="シチュー用。\n1L を 2 本")
 
     assert t.detail == "シチュー用。\n1L を 2 本"
+
+
+# --- 編集 ------------------------------------------------------------------
+def test_編集するとタイトル優先度期限詳細が変わり作成日時と完了は変わらない():
+    t = Task(title="牛乳を買う", priority=Priority.LOW, created_at=T0, done=True, detail="")
+
+    t.edit(title="牛乳を 2 本買う", priority=Priority.HIGH, due=date(2026, 11, 20), detail="シチュー用")
+
+    assert (t.title, t.priority, t.due, t.detail, t.created_at, t.done) == (
+        "牛乳を 2 本買う", Priority.HIGH, date(2026, 11, 20), "シチュー用", T0, True,
+    )
+
+
+def test_期限を消す編集ができる():
+    t = Task(title="牛乳を買う", priority=Priority.LOW, created_at=T0, due=date(2026, 11, 20))
+
+    t.edit(title=t.title, priority=t.priority, due=None, detail=t.detail)
+
+    assert t.due is None
+
+
+@pytest.mark.parametrize("title", ["", "   "])
+def test_空のタイトルへの編集は失敗しタスクは変わらない(title):
+    t = Task(title="牛乳を買う", priority=Priority.LOW, created_at=T0, detail="飲む用")
+
+    with pytest.raises(ValueError):
+        t.edit(title=title, priority=Priority.HIGH, due=date(2026, 11, 20), detail="シチュー用")
+
+    assert (t.title, t.priority, t.due, t.detail) == ("牛乳を買う", Priority.LOW, None, "飲む用")

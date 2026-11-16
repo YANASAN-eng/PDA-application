@@ -95,6 +95,54 @@ def create_app(db_path: Path, *, clock: Callable[[], datetime] = _system_clock) 
             TaskRepository(conn).add(task)
         return RedirectResponse("/tasks", status_code=303)
 
+    def task_or_404(conn, task_id: int) -> Task:
+        task = TaskRepository(conn).get(task_id)
+        if task is None:
+            raise HTTPException(status_code=404, detail="タスクが見つかりません")
+        return task
+
+    def render_task_edit(request: Request, task: Task, *, form: dict, error: str | None = None, status: int = 200):
+        context = {
+            "task_id": task.id,
+            "back": "/tasks/done" if task.done else "/tasks",
+            "priorities": list(Priority),
+            "form": form,
+            "error": error,
+        }
+        return TEMPLATES.TemplateResponse(request, "task_edit.html", context, status_code=status)
+
+    @app.get("/tasks/{task_id}/edit")
+    def task_edit_page(request: Request, task_id: int):
+        """編集ページ(ポップアップが使えないときの代わり)。GET は何も変えない。"""
+        with open_db() as conn:
+            task = task_or_404(conn, task_id)
+        form = {
+            "title": task.title,
+            "priority": task.priority.name,
+            "due": task.due.isoformat() if task.due else "",
+            "detail": task.detail,
+        }
+        return render_task_edit(request, task, form=form)
+
+    @app.post("/tasks/{task_id}/edit")
+    def task_edit(
+        request: Request,
+        task_id: int,
+        title: str = Form(""),
+        priority: str = Form(""),
+        due: str = Form(""),
+        detail: str = Form(""),
+    ):
+        form = {"title": title, "priority": priority, "due": due, "detail": detail}
+        with open_db() as conn:
+            task = task_or_404(conn, task_id)
+            try:
+                task.edit(title=title, priority=_parse_priority(priority), due=_parse_date(due), detail=detail)
+            except ValueError as e:
+                return render_task_edit(request, task, form=form, error=str(e), status=400)
+            TaskRepository(conn).update(task)
+        return RedirectResponse("/tasks/done" if task.done else "/tasks", status_code=303)
+
     @app.get("/tasks/done")
     def task_done_list(request: Request):
         with open_db() as conn:

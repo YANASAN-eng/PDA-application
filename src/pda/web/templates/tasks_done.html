@@ -9,6 +9,7 @@
     <span class="title">{{ t.title }}</span>
     <span class="meta">優先度 {{ t.priority.label }}{% if t.due %} / 期限 {{ t.due.isoformat() }}{% endif %}</span>
     {% if t.detail %}<span class="detail">{{ t.detail }}</span>{% endif %}
+    <a href="/tasks/{{ t.id }}/edit" class="task-edit" data-title="{{ t.title }}" data-priority="{{ t.priority.name }}" data-due="{{ t.due.isoformat() if t.due else '' }}" data-detail="{{ t.detail }}">編集</a>
     <form class="inline" method="post" action="/tasks/{{ t.id }}/undone"><button type="submit">未完了に戻す</button></form>
     <form class="inline" method="post" action="/tasks/{{ t.id }}/delete" data-confirm="「{{ t.title }}」を削除しますか?"><button type="submit">削除</button></form>
   </li>
@@ -17,3 +18,5 @@
   {% endfor %}
 </ul>
 {% endblock %}
+
+{% block scripts %}{% include "_task_edit_dialog.html" %}{% endblock %}
