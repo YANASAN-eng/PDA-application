@@ -50,5 +50,12 @@ def test_モック以外の要約器はまだ選べない(name):
         make_summarizer(name)
 
 
-def test_既定の設定はモック要約でフィードは空で上限は30件():
-    assert (config.SUMMARIZER, config.FEEDS, config.DAILY_SUMMARY_LIMIT) == ("mock", [], 30)
+def test_既定の設定はモック要約で上限は30件():
+    assert (config.SUMMARIZER, config.DAILY_SUMMARY_LIMIT) == ("mock", 30)
+
+
+def test_設定のフィードはURLも名前も重複しない():
+    urls = [f.url for f in config.FEEDS]
+    names = [f.name for f in config.FEEDS]
+
+    assert len(urls) == len(set(urls)) and len(names) == len(set(names))
