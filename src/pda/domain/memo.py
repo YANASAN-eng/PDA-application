@@ -22,6 +22,7 @@ class Memo:
     body: str = ""
     tags: Iterable[str] = ()
     updated_at: datetime | None = None  # 省略時は created_at と同じ
+    id: int | None = None  # 保存前は None。リポジトリが保存時に振る
 
     def __post_init__(self) -> None:
         require_title(self.title)
