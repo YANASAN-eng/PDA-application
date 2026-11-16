@@ -16,6 +16,7 @@ from pda.db.migrate import MIGRATIONS_DIR, _NAME, checksum
 
 FROZEN: dict[str, str] = {
     "0001_initial.sql": "21dc1d9a78e6341572b5cd3586c33e84d5d2a5147ec4dc0e8369494c5160a451",
+    "0002_add_task_detail.sql": "1713a955c82c1556d619342b9193c2737bc677e35be2dadda9010ffd5b800602",
 }
 
 
