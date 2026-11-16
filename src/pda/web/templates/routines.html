@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}日課の編集 - PDA{% endblock %}
+{% block content %}
+<h1>日課の編集</h1>
+<p class="page-actions"><a href="/today" class="pill-link">← 今日へ</a></p>
+<p class="meta">毎日(または決まった曜日に)必ずやることを登録すると、今日の画面にチェックで並びます。</p>
+<form method="post" action="/routines" class="panel routine-form">
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  {% with prefix="" %}{% include "_routine_form_fields.html" %}{% endwith %}
+  <p><button type="submit" class="primary">追加</button></p>
+</form>
+<ul class="items">
+  {% for r in routines %}
+  <li>
+    <span class="title">{{ r.title }}</span>
+    <span class="meta">{{ weekdays_label(r.weekdays) }}</span>
+    <a href="/routines/{{ r.id }}/edit" class="routine-edit" data-title="{{ r.title }}" data-weekdays="{{ r.weekdays|sort|join(' ') }}">編集</a>
+    <form class="inline" method="post" action="/routines/{{ r.id }}/delete" data-confirm="「{{ r.title }}」を削除しますか?"><button type="submit">削除</button></form>
+  </li>
+  {% else %}
+  <li>まだ日課はありません</li>
+  {% endfor %}
+</ul>
+{% endblock %}
+
+{% block scripts %}
+<dialog id="routine-dialog" aria-labelledby="routine-dialog-heading">
+  <form method="post" action="" class="routine-form">
+    <div class="dialog-head"><h2 id="routine-dialog-heading">日課の編集</h2><button type="button" class="dialog-close" aria-label="閉じる" title="閉じる" data-close><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+    {% with prefix="dialog-", form={"title": "", "weekdays": []} %}{% include "_routine_form_fields.html" %}{% endwith %}
+    <p><button type="submit" class="primary">保存</button></p>
+  </form>
+</dialog>
+<script>
+  // 編集はポップアップで。使えないブラウザではリンクがそのまま編集ページを開く
+  (() => {
+    const dialog = document.getElementById("routine-dialog");
+    if (typeof dialog.showModal !== "function") return;
+    const form = dialog.querySelector("form");
+    document.addEventListener("click", (e) => {
+      const link = e.target.closest("a.routine-edit");
+      if (!link) return;
+      e.preventDefault();
+      document.getElementById("dialog-title").value = link.dataset.title;
+      const days = link.dataset.weekdays.split(" ");
+      for (let d = 0; d < 7; d++) document.getElementById("dialog-weekday-" + d).checked = days.includes(String(d));
+      form.action = link.href;
+      dialog.showModal();
+    });
+    dialog.querySelector("[data-close]").addEventListener("click", () => dialog.close());
+  })();
+</script>
+{% endblock %}

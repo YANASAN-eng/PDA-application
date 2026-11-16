@@ -20,6 +20,7 @@ FROZEN: dict[str, str] = {
     "0003_add_news.sql": "48c3556f8a0a87f2aea19fa81eae1e718c6b528f58cf1d6e7d05b5af08b7b607",
     "0004_add_keywords.sql": "da2533247e17cddc6704e202391296c89a61ed378ea15f2a7f9cb3c522645e6e",
     "0005_add_article_read_at.sql": "578c003f0b0fd547ee9ca0e82121ec3c5d12611a88501de78616a7b18cf34863",
+    "0006_add_routines.sql": "18b0bf54658dd4f11807b1a1cbb47c414b9b3894a2737c78ad30fb788d1f7624",
 }
 
 

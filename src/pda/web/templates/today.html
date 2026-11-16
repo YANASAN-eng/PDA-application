@@ -3,7 +3,35 @@
 {% block content %}
 <h1>今日</h1>
 <p class="today-date">{{ jp_day(today) }}</p>
-<p class="page-actions"><a href="/events" class="pill-link">予定をすべて見る</a></p>
+
+{% set done_count = routines|selectattr(1)|list|length %}
+<section class="routines" aria-labelledby="routines-heading">
+  <div class="section-head">
+    <h2 id="routines-heading">日課 {% if routines %}<span class="progress">{{ done_count }} / {{ routines|length }}</span>{% endif %}</h2>
+    <a href="/routines" class="pill-link">日課を編集</a>
+  </div>
+  {% if routines %}
+  <ul class="routine-list">
+    {% for r, done in routines %}
+    <li class="routine{% if done %} done{% endif %}">
+      <form method="post" action="/routines/{{ r.id }}/{{ 'uncheck' if done else 'check' }}">
+        <button type="submit" class="routine-toggle" aria-pressed="{{ 'true' if done else 'false' }}">
+          <span class="box" aria-hidden="true">{% if done %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>{% endif %}</span>
+          <span class="routine-title">{{ r.title }}</span>
+        </button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="meta">今日の日課はありません</p>
+  {% endif %}
+</section>
+
+<div class="section-head">
+  <h2>今日の予定</h2>
+  <a href="/events" class="pill-link">予定をすべて見る</a>
+</div>
 {% if events %}
 <ul class="items events">
   {% for e in events %}

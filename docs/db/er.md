@@ -61,9 +61,23 @@ erDiagram
         TEXT word "NOT NULL, 前後の空白なし"
     }
 
+    routines {
+        INTEGER id PK
+        TEXT title "NOT NULL (0006)"
+    }
+    routine_weekdays {
+        INTEGER routine_id PK, FK
+        INTEGER weekday PK "0(月)〜6(日)"
+    }
+    routine_checks {
+        INTEGER routine_id PK, FK
+        TEXT day PK "YYYY-MM-DD: やった日"
+    }
     memos ||--o{ memo_tags : "付く"
     tags ||--o{ memo_tags : "付く"
     feeds ||--o{ articles : "配信する"
+    routines ||--|{ routine_weekdays : "出る曜日"
+    routines ||--o{ routine_checks : "やった日"
 ```
 
 ## 関係の読み方
@@ -81,6 +95,7 @@ erDiagram
    - 本物の要約器へ切り替えるときは、既存のモック要約を消して作り直す(`UPDATE articles SET summary = NULL, summarized_at = NULL;`)
 5. ニュース側(feeds / articles)は 0003 で作成(2026-11-16)。`description` は「なし」を空文字で表す(NOT NULL)。`summary` の NULL は「未要約」で、空文字の要約とは意味が違うので NULL を使う。記事のあるフィードは消せない(設定から消したフィードの記事を残すため)
 6. **keywords は 0004 で作成**(2026-11-16)。グループは固定(CHECK)。同じグループに大文字小文字だけが違う語は置かない(`(grp, word COLLATE NOCASE)` の UNIQUE 索引)。他のテーブルとは関係なし(照合はアプリで行う)
+7. **日課は 0006 で作成**(2026-11-16)。曜日は 1 列に詰めず `routine_weekdays` に 1 行ずつ(第一正規形)。「曜日が 1 つ以上」(`||--|{`)は行の数の制約なので DB では表せず、ドメインとリポジトリが守る。実行の記録 `routine_checks` は行がなければ未完了(リセットの処理を持たない)
 
 ## 正規化メモ
 - `articles` では `id` も `url` も候補キー(`url` は UNIQUE)。`url → title` などの関数従属は成り立つが、決定項 `url` が超キーなので BCNF に違反しない。主キーには短い代理キー `id` を選び、`url` は代替キーとして UNIQUE で表す
