@@ -35,6 +35,11 @@ class Task:
     def __post_init__(self) -> None:
         require_title(self.title)
 
+    def edit(self, *, title: str, priority: Priority, due: date | None, detail: str) -> None:
+        """タイトル・優先度・期限・詳細を変える(作成日時と完了は変えない)。検証に失敗したら何も変えない。"""
+        require_title(title)  # 先にすべて検証してから代入する(途中まで書き換わった状態を残さない)
+        self.title, self.priority, self.due, self.detail = title, priority, due, detail
+
     def is_overdue(self, today: date) -> bool:
         """超過 = 未完了のまま期限の翌日以降になっていること(期限当日は含まない)。"""
         return not self.done and self.due is not None and today > self.due
