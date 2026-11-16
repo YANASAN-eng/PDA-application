@@ -22,5 +22,13 @@
 <body>
   <nav><a href="/tasks">ToDo</a></nav>
   {% block content %}{% endblock %}
+  <script>
+    // data-confirm を持つフォームは、送信の前にブラウザ標準の確認を出す(キャンセルなら送らない)。
+    // 文言は属性から文字列として読むだけ。onsubmit に直接埋め込むとタイトルがコードとして実行されうる
+    document.addEventListener("submit", (e) => {
+      const message = e.target.dataset.confirm;
+      if (message && !confirm(message)) e.preventDefault();
+    });
+  </script>
 </body>
 </html>

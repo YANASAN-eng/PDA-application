@@ -186,39 +186,49 @@ def test_一覧と完了済みページは互いにリンクしている(client)
     assert 'href="/tasks"' in client.get("/tasks/done").text
 
 
-# --- 削除(確認ページを経由) ---------------------------------------------------
-def test_削除の確認ページにはタイトルと削除ボタンがあり開いただけでは消えない(client, tasks):
-    t = task("論文を読む")
+# --- 削除(ブラウザ標準の確認ポップアップ) ----------------------------------------
+@pytest.mark.parametrize("done, page", [(False, "/tasks"), (True, "/tasks/done")], ids=["未完了の一覧", "完了済みページ"])
+def test_一覧の削除ボタンは確認の文言付きで削除を送る(client, tasks, done, page):
+    t = task("牛乳を買う", done=done)
     tasks.add(t)
 
-    html = client.get(f"/tasks/{t.id}/delete").text
+    html = client.get(page).text
 
-    assert "論文を読む" in html
-    assert f'method="post" action="/tasks/{t.id}/delete"' in html
-    assert tasks.get(t.id) is not None
+    assert f'method="post" action="/tasks/{t.id}/delete" data-confirm="「牛乳を買う」を削除しますか?"' in html
 
 
-def test_確認ページで削除すると消えて一覧へ戻る(client, tasks):
-    t = task("論文を読む")
+def test_確認の文言に入るタイトルは属性の中でエスケープされる(client, tasks):
+    tasks.add(task('a"b<c>'))
+
+    assert 'data-confirm="「a&#34;b&lt;c&gt;」を削除しますか?"' in client.get("/tasks").text
+
+
+@pytest.mark.parametrize("page", ["/tasks", "/tasks/done"])
+def test_各ページに確認ポップアップの共通スクリプトがある(client, page):
+    assert "dataset.confirm" in client.get(page).text
+
+
+@pytest.mark.parametrize("done, back", [(False, "/tasks"), (True, "/tasks/done")], ids=["未完了", "完了済み"])
+def test_削除すると消えて元のページへ戻る(client, tasks, done, back):
+    t = task("論文を読む", done=done)
     tasks.add(t)
 
     res = client.post(f"/tasks/{t.id}/delete", follow_redirects=False)
 
-    assert res.status_code == 303 and res.headers["location"] == "/tasks"
+    assert res.status_code == 303 and res.headers["location"] == back
     assert tasks.get(t.id) is None
 
 
-@pytest.mark.parametrize("done, page", [(False, "/tasks"), (True, "/tasks/done")], ids=["未完了の一覧", "完了済みページ"])
-def test_一覧から削除の確認ページへ行ける(client, tasks, done, page):
-    t = task("論文を読む", done=done)
+def test_存在しないタスクは削除できない(client):
+    assert client.post("/tasks/999/delete").status_code == 404
+
+
+def test_削除の確認ページはもうない(client, tasks):
+    t = task("論文を読む")
     tasks.add(t)
 
-    assert f'href="/tasks/{t.id}/delete"' in client.get(page).text
-
-
-@pytest.mark.parametrize("method", ["get", "post"])
-def test_存在しないタスクは削除できない(client, method):
-    assert getattr(client, method)("/tasks/999/delete").status_code == 404
+    assert client.get(f"/tasks/{t.id}/delete").status_code in (404, 405)
+    assert tasks.get(t.id) is not None
 
 
 # --- 詳細 ------------------------------------------------------------------
@@ -249,10 +259,3 @@ def test_一覧に詳細が表示される(client, tasks, done, page):
     tasks.add(task("牛乳を買う", done=done, detail="シチュー用"))
 
     assert "シチュー用" in client.get(page).text
-
-
-def test_削除の確認ページに詳細が表示される(client, tasks):
-    t = task("牛乳を買う", detail="シチュー用")
-    tasks.add(t)
-
-    assert "シチュー用" in client.get(f"/tasks/{t.id}/delete").text

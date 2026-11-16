@@ -10,7 +10,7 @@
     <span class="meta">優先度 {{ t.priority.label }}{% if t.due %} / 期限 {{ t.due.isoformat() }}{% endif %}</span>
     {% if t.detail %}<span class="detail">{{ t.detail }}</span>{% endif %}
     <form class="inline" method="post" action="/tasks/{{ t.id }}/undone"><button type="submit">未完了に戻す</button></form>
-    <a href="/tasks/{{ t.id }}/delete">削除</a>
+    <form class="inline" method="post" action="/tasks/{{ t.id }}/delete" data-confirm="「{{ t.title }}」を削除しますか?"><button type="submit">削除</button></form>
   </li>
   {% else %}
   <li>完了済みのタスクはありません</li>
