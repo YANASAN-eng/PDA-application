@@ -25,10 +25,11 @@ def client(tmp_path):
 
 PAGES = {
     "/tasks": "ToDo", "/tasks/done": "ToDo", "/tasks/1/edit": "ToDo",
+    "/events": "予定", "/events/past": "予定", "/events/new": "予定",
     "/memos": "メモ", "/memos/new": "メモ",
     "/news": "ニュース", "/keywords": "ニュース",
 }
-HREF = {"ToDo": "/tasks", "メモ": "/memos", "ニュース": "/news"}
+HREF = {"ToDo": "/tasks", "予定": "/events", "メモ": "/memos", "ニュース": "/news"}
 
 
 @pytest.mark.parametrize("path", PAGES)
@@ -48,7 +49,7 @@ def test_今いる画面のタブが強調される(client, path, current):
     assert f'<a href="{HREF[current]}" class="tab" aria-current="page">' in tabbar
 
 
-@pytest.mark.parametrize("label", ["今日", "予定"])
+@pytest.mark.parametrize("label", ["今日"])
 def test_まだない画面のタブは押せない表示(client, label):
     html = client.get("/tasks").text
 
@@ -64,7 +65,7 @@ def test_デザインの色と書体を使う(client):
     assert "Zen+Maru+Gothic" in html
 
 
-@pytest.mark.parametrize("path, label", [("/tasks", "ToDo"), ("/memos", "メモ"), ("/news", "ニュース")])
+@pytest.mark.parametrize("path, label", [("/tasks", "ToDo"), ("/events", "予定"), ("/memos", "メモ"), ("/news", "ニュース")])
 def test_画面の見出しはタブの名前と同じ表記(client, path, label):
     # 2026-11-16: タブは「メモ」なのに見出しが「めも」で統一感がなかった(ユーザー指摘)
     assert f"<h1>{label}</h1>" in client.get(path).text
