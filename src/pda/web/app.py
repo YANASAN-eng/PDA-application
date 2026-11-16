@@ -14,7 +14,7 @@ from contextlib import contextmanager
 from datetime import date, datetime
 from pathlib import Path
 
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
@@ -80,6 +80,17 @@ def create_app(db_path: Path, *, clock: Callable[[], datetime] = _system_clock) 
             return render_task_list(request, form=form, error=str(e), status=400)
         with open_db() as conn:
             TaskRepository(conn).add(task)
+        return RedirectResponse("/tasks", status_code=303)
+
+    @app.post("/tasks/{task_id}/done")
+    def task_done(task_id: int):
+        with open_db() as conn:
+            repo = TaskRepository(conn)
+            task = repo.get(task_id)
+            if task is None:
+                raise HTTPException(status_code=404, detail="タスクが見つかりません")
+            task.done = True
+            repo.update(task)
         return RedirectResponse("/tasks", status_code=303)
 
     return app

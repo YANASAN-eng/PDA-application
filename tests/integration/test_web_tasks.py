@@ -116,3 +116,26 @@ def test_タイトルのHTMLはタグとして解釈されず文字のまま表�
 
     assert "<script>alert(1)</script>" not in html
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
+
+
+# --- 完了 ------------------------------------------------------------------
+def test_完了にすると一覧から消える(client, tasks):
+    t = task("論文を読む")
+    tasks.add(t)
+
+    res = client.post(f"/tasks/{t.id}/done", follow_redirects=False)
+
+    assert res.status_code == 303 and res.headers["location"] == "/tasks"
+    assert tasks.get(t.id).done is True
+    assert "論文を読む" not in client.get("/tasks").text
+
+
+def test_一覧の各タスクに完了ボタンがある(client, tasks):
+    t = task("論文を読む")
+    tasks.add(t)
+
+    assert f'action="/tasks/{t.id}/done"' in client.get("/tasks").text
+
+
+def test_存在しないタスクは完了にできない(client):
+    assert client.post("/tasks/999/done").status_code == 404
