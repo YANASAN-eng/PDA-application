@@ -144,3 +144,12 @@ def test_更新日時が同じメモは元の順序を保つ():
     first, second = memo(title="一番目"), memo(title="二番目")
 
     assert [m.title for m in memos_by_updated([first, second])] == ["一番目", "二番目"]
+
+
+# --- id --------------------------------------------------------------------
+def test_保存前のメモはidを持たない():
+    assert memo().id is None
+
+
+def test_idを指定してメモを作れる():
+    assert Memo(id=7, title="量子計算のメモ", created_at=T0).id == 7

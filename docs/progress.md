@@ -2,13 +2,13 @@
 
 作業を中断・再開するときの引き継ぎ用。**再開したらまずここを読む。** 区切りごとに更新する。
 
-## 最終更新: 2026-11-15
-- `main` は全テスト緑(150 件)。作業中のブランチなし
+## 最終更新: 2026-11-16
+- `main` は全テスト緑(171 件)。作業中のブランチなし
 - 再開時の確認コマンド:
   ```powershell
   cd C:\development\pda
   .\.venv\Scripts\Activate.ps1
-  pytest -q            # 150 passed のはず
+  pytest -q            # 171 passed のはず
   git log --oneline --graph -10
   ```
 
@@ -17,7 +17,7 @@
 |---|---|---|---|---|
 | ドメイン(`src/pda/domain/`) | ✅ `task.py` | ✅ `event.py` | ✅ `memo.py` | ⬜ 未着手 |
 | スキーマ(`src/pda/db/migrations/0001_initial.sql`) | ✅ | ✅ | ✅(`memos`・`tags`・`memo_tags`) | ⬜ `0002` で追加予定 |
-| リポジトリ(`src/pda/db/`) | ✅ `task_repository.py` | ✅ `event_repository.py` | ⬜ **次にやる** | ⬜ |
+| リポジトリ(`src/pda/db/`) | ✅ `task_repository.py` | ✅ `event_repository.py` | ✅ `memo_repository.py` | ⬜ |
 | Web 画面(`src/pda/web/`) | ⬜ | ⬜ | ⬜ | ⬜ |
 
 基盤:
@@ -25,20 +25,16 @@
 - マイグレーションの凍結検査 `tests/integration/test_migration_freeze.py`(`0001` 登録済み)
 - ER 図 `docs/db/er.md`(閲覧用ページ: https://claude.ai/artifact/HVduwaWzGh3SGvVeWrv6uS)
 
-## 次にやること: メモのリポジトリ(`feature/memo-repository`)
-1. ドメインの `Memo` に `id` を足す(TDD)
-2. `MemoRepository` を作る。メモ 1 件の保存は次を **1 トランザクション**で行う
-   - `memos` に 1 行
-   - 未登録のタグを `tags` に追加
-   - `memo_tags` で結び付け(更新時は付け直し)
-   - 途中で失敗したら全部取り消す(ドメインの「編集に失敗したら一切変わらない」と同じ性質を DB でも守る)
-
-**着手前にユーザーに聞くこと(未回答)**:
-- どのメモからも使われなくなったタグを自動で消すか、残すか
-  - 残す: 次にタグを付けるとき候補に出せる / 使わないタグがたまる
-  - 消す: タグ一覧が常に「実際に使っているもの」だけになる
+## 直近にやったこと(2026-11-16): メモのリポジトリ
+- `Memo` に `id` を追加。`MemoRepository`(`add` / `get` / `list_all` / `update` / `delete`)
+- `add` と `update` は `memos`・`tags`・`memo_tags` への書き込みを 1 トランザクションで行う(`_transaction()`)。途中で失敗したら全部取り消し、`memo.id` も振らない
+  - 接続(`connect()`)は自動コミットなので、BEGIN / COMMIT / ROLLBACK はリポジトリが明示する
+  - 途中失敗はテストの中だけでトリガーを仕掛けて再現している(`tests/integration/test_memo_repository.py` の `break_memo_tags`)
+- 使われなくなったタグも `tags` に残す(2026-11-16 ユーザー決定。`docs/requirements.md` に記録)
+- `list_all` は保存した順。表示の並び順はドメインの `memos_by_updated` が決める
 
 ## その後の候補(順番は未決定)
+- タグの候補一覧を返す処理(タグを残すと決めた理由が「候補に出すため」なので、Web 画面で必要になったら作る。並び順は要相談)
 - ニュースのドメイン(記事の形、IT × 物理・数学の絞り込み、モック要約)→ `0002` でニュースのテーブル追加
 - Web 画面(FastAPI + Jinja2)
 - GitHub へ push(リモート未作成。公開/非公開をユーザーと決めてから)
