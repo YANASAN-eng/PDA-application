@@ -41,14 +41,14 @@ erDiagram
     feeds {
         INTEGER id PK
         TEXT name "NOT NULL"
-        TEXT url "NOT NULL, UNIQUE"
+        TEXT url "NOT NULL, UNIQUE: http(s) のみ"
     }
     articles {
         INTEGER id PK
         INTEGER feed_id FK
-        TEXT url "NOT NULL, UNIQUE (代替キー)"
+        TEXT url "NOT NULL, UNIQUE (代替キー): http(s) のみ"
         TEXT title "NOT NULL"
-        TEXT description "NULL 可: RSS の概要文"
+        TEXT description "NOT NULL DEFAULT '': RSS の概要文 (タグ除去済み)"
         TEXT published_at "NULL 可"
         TEXT fetched_at "NOT NULL"
         TEXT summary "NULL 可: 要約前は NULL"
@@ -73,7 +73,7 @@ erDiagram
 3. **tasks の登録順は `created_at`**。同じ日時どうしは `id` 順
 4. **要約は articles の列**(`summary`, `summarized_at`)。モックか本物かは記録しない。理由: その区別が役立つのは切り替え時だけで、常設すると重くなる
    - 本物の要約器へ切り替えるときは、既存のモック要約を消して作り直す(`UPDATE articles SET summary = NULL, summarized_at = NULL;`)
-5. ニュース側(feeds / articles)はドメイン未設計の仮置き。ニュースのドメインを決めたら見直す
+5. ニュース側(feeds / articles)は 0003 で作成(2026-11-16)。`description` は「なし」を空文字で表す(NOT NULL)。`summary` の NULL は「未要約」で、空文字の要約とは意味が違うので NULL を使う。記事のあるフィードは消せない(設定から消したフィードの記事を残すため)
 
 ## 正規化メモ
 - `articles` では `id` も `url` も候補キー(`url` は UNIQUE)。`url → title` などの関数従属は成り立つが、決定項 `url` が超キーなので BCNF に違反しない。主キーには短い代理キー `id` を選び、`url` は代替キーとして UNIQUE で表す
