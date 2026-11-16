@@ -8,10 +8,10 @@
 
 import sqlite3
 from collections import defaultdict
-from collections.abc import Iterable, Iterator
-from contextlib import contextmanager
+from collections.abc import Iterable
 
 from pda.db._convert import datetime_from_db, datetime_to_db
+from pda.db._transaction import transaction
 from pda.domain.memo import Memo
 
 
@@ -44,7 +44,7 @@ class MemoRepository:
         """保存して memo.id を振る。"""
         if memo.id is not None:
             raise ValueError(f"保存済みのメモです(id={memo.id})")
-        with self._transaction():
+        with transaction(self._conn):
             cur = self._conn.execute(
                 "INSERT INTO memos (title, body, created_at, updated_at) VALUES (?, ?, ?, ?)",
                 _to_row(memo),
@@ -72,7 +72,7 @@ class MemoRepository:
         """内容とタグを書き換える。タグは結び付けを付け直す(外したタグも tags には残る)。"""
         if memo.id is None:
             raise ValueError("保存前のメモは更新できません")
-        with self._transaction():
+        with transaction(self._conn):
             cur = self._conn.execute(
                 "UPDATE memos SET title = ?, body = ?, created_at = ?, updated_at = ? WHERE id = ?",
                 (*_to_row(memo), memo.id),
@@ -87,17 +87,6 @@ class MemoRepository:
         cur = self._conn.execute("DELETE FROM memos WHERE id = ?", (memo_id,))
         if cur.rowcount == 0:
             raise LookupError(f"メモが見つかりません(id={memo_id})")
-
-    @contextmanager
-    def _transaction(self) -> Iterator[None]:
-        """中の書き込みをすべて反映するか、1 つも反映しないか(接続は自動コミットなので明示する)。"""
-        self._conn.execute("BEGIN")
-        try:
-            yield
-        except BaseException:
-            self._conn.execute("ROLLBACK")
-            raise
-        self._conn.execute("COMMIT")
 
     def _link_tags(self, memo_id: int, tags: Iterable[str]) -> None:
         for name in tags:
