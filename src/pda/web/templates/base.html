@@ -17,6 +17,11 @@
     .error { color: #b00020; }
     form.inline { display: inline; }
     input, select, button { font-size: 1rem; }
+    /* 編集ポップアップ */
+    dialog { width: min(32rem, calc(100vw - 2rem)); border: 1px solid #ccc; border-radius: 8px; padding: 1rem 1.25rem; }
+    dialog::backdrop { background: rgba(0, 0, 0, .35); }
+    dialog h2 { margin-top: 0; font-size: 1.1rem; }
+    dialog input:not([type=date]) { width: 100%; box-sizing: border-box; }
     /* キーワード: 語を横に詰めて並べる。PC ではグループを 2 列、狭い画面では 1 列 */
     .keyword-form { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .25rem; }
     .keyword-form input { flex: 1 1 12rem; }

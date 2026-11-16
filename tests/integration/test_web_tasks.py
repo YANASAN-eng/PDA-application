@@ -259,3 +259,73 @@ def test_一覧に詳細が表示される(client, tasks, done, page):
     tasks.add(task("牛乳を買う", done=done, detail="シチュー用"))
 
     assert "シチュー用" in client.get(page).text
+
+
+# --- 編集 ------------------------------------------------------------------
+def test_編集ページには今の値が入ったフォームがある(client, tasks):
+    t = task("牛乳を買う", priority=Priority.LOW, due=date(2026, 11, 20), detail="シチュー用")
+    tasks.add(t)
+
+    html = client.get(f"/tasks/{t.id}/edit").text
+
+    assert f'method="post" action="/tasks/{t.id}/edit"' in html
+    assert 'value="牛乳を買う"' in html and 'value="2026-11-20"' in html and "シチュー用</textarea>" in html
+    assert '<option value="LOW" selected>' in html
+
+
+@pytest.mark.parametrize("done, back", [(False, "/tasks"), (True, "/tasks/done")], ids=["未完了", "完了済み"])
+def test_編集を保存すると元の一覧へ戻り作成日時と完了は変わらない(client, tasks, done, back):
+    t = task("牛乳を買う", done=done)
+    tasks.add(t)
+
+    res = client.post(
+        f"/tasks/{t.id}/edit",
+        data={"title": "牛乳を 2 本買う", "priority": "HIGH", "due": "2026-11-20", "detail": "シチュー用"},
+        follow_redirects=False,
+    )
+
+    assert res.status_code == 303 and res.headers["location"] == back
+    saved = tasks.get(t.id)
+    assert (saved.title, saved.priority, saved.due, saved.detail) == ("牛乳を 2 本買う", Priority.HIGH, date(2026, 11, 20), "シチュー用")
+    assert (saved.created_at, saved.done) == (t.created_at, done)
+
+
+@pytest.mark.parametrize(
+    "form, message",
+    [
+        ({"title": " ", "priority": "LOW", "due": "", "detail": "メモ"}, "タイトルは空にできません"),
+        ({"title": "牛乳", "priority": "URGENT", "due": "", "detail": ""}, "優先度が正しくありません"),
+        ({"title": "牛乳", "priority": "LOW", "due": "2026-02-30", "detail": ""}, "日付が正しくありません"),
+    ],
+    ids=["空のタイトル", "存在しない優先度", "存在しない日付"],
+)
+def test_不正な編集は保存せずエラーを表示し入力を残す(client, tasks, form, message):
+    t = task("牛乳を買う")
+    tasks.add(t)
+
+    res = client.post(f"/tasks/{t.id}/edit", data=form)
+
+    assert res.status_code == 400 and message in res.text
+    assert f'value="{form["title"]}"' in res.text
+    assert tasks.get(t.id).title == "牛乳を買う"
+
+
+@pytest.mark.parametrize("method", ["get", "post"])
+def test_存在しないタスクは編集できない(client, method):
+    data = {"title": "x", "priority": "LOW", "due": "", "detail": ""} if method == "post" else None
+    res = client.get("/tasks/999/edit") if method == "get" else client.post("/tasks/999/edit", data=data)
+
+    assert res.status_code == 404
+
+
+def test_一覧の編集リンクは今の値をポップアップ用に持つ(client, tasks):
+    t = task("牛乳を買う", priority=Priority.LOW, due=date(2026, 11, 20), detail='シチュー用"です"')
+    tasks.add(t)
+
+    html = client.get("/tasks").text
+
+    assert (
+        f'<a href="/tasks/{t.id}/edit" class="task-edit" data-title="牛乳を買う" data-priority="LOW"'
+        f' data-due="2026-11-20" data-detail="シチュー用&#34;です&#34;">編集</a>'
+    ) in html
+    assert '<dialog id="task-edit-dialog"' in html and 'getElementById("task-edit-dialog")' in html
