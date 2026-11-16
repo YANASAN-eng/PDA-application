@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}キーワード - PDA{% endblock %}
+{% block content %}
+<h1>ニュースのキーワード</h1>
+<p class="meta">タイトルか概要文にどれかの語がある記事を集めます。両方のグループに当たる記事が優先されます。英字は単語単位で、大文字小文字を区別しません。</p>
+<form method="post" action="/keywords">
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <p>
+    <label>グループ
+      <select name="group">
+        {% for g in groups %}
+        <option value="{{ g.name }}"{% if g.name == form.group %} selected{% endif %}>{{ g.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>語 <input name="word" value="{{ form.word }}" required></label>
+    <button type="submit">追加</button>
+  </p>
+</form>
+{% for group, items in by_group %}
+<h2>{{ group.label }}({{ items|length }} 語)</h2>
+<ul class="items">
+  {% for k in items %}
+  <li>
+    <span class="title">{{ k.word }}</span>
+    <form class="inline" method="post" action="/keywords/{{ k.id }}/delete" data-confirm="「{{ k.word }}」を削除しますか?"><button type="submit">削除</button></form>
+  </li>
+  {% else %}
+  <li>まだありません</li>
+  {% endfor %}
+</ul>
+{% endfor %}
+{% endblock %}
