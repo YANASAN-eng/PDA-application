@@ -7,6 +7,8 @@
 """
 
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 from pda.db._convert import datetime_from_db, datetime_to_db
 from pda.domain.memo import Memo
@@ -20,12 +22,14 @@ class MemoRepository:
         """保存して memo.id を振る。"""
         if memo.id is not None:
             raise ValueError(f"保存済みのメモです(id={memo.id})")
-        cur = self._conn.execute(
-            "INSERT INTO memos (title, body, created_at, updated_at) VALUES (?, ?, ?, ?)",
-            (memo.title, memo.body, datetime_to_db(memo.created_at), datetime_to_db(memo.updated_at)),
-        )
-        memo.id = cur.lastrowid
-        self._link_tags(memo.id, memo.tags)
+        with self._transaction():
+            cur = self._conn.execute(
+                "INSERT INTO memos (title, body, created_at, updated_at) VALUES (?, ?, ?, ?)",
+                (memo.title, memo.body, datetime_to_db(memo.created_at), datetime_to_db(memo.updated_at)),
+            )
+            new_id = cur.lastrowid
+            self._link_tags(new_id, memo.tags)
+        memo.id = new_id  # COMMIT できてから振る(失敗したら memo は変わらない)
 
     def get(self, memo_id: int) -> Memo | None:
         row = self._conn.execute(
@@ -42,6 +46,17 @@ class MemoRepository:
             created_at=datetime_from_db(created_at),
             updated_at=datetime_from_db(updated_at),
         )
+
+    @contextmanager
+    def _transaction(self) -> Iterator[None]:
+        """中の書き込みをすべて反映するか、1 つも反映しないか(接続は自動コミットなので明示する)。"""
+        self._conn.execute("BEGIN")
+        try:
+            yield
+        except BaseException:
+            self._conn.execute("ROLLBACK")
+            raise
+        self._conn.execute("COMMIT")
 
     def _link_tags(self, memo_id: int, tags) -> None:
         for name in tags:

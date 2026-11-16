@@ -1,3 +1,4 @@
+import sqlite3
 from datetime import datetime
 
 import pytest
@@ -73,3 +74,25 @@ def test_同じ名前のタグは複数のメモで1行を共有する(repo, con
     repo.add(memo(title="B", tags=["物理"]))
 
     assert conn.execute("SELECT count(*) FROM tags WHERE name = '物理'").fetchone()[0] == 1
+
+
+# --- 失敗したら何も残らない(1 トランザクション) ---------------------------
+def break_memo_tags(conn):
+    """memo_tags への挿入を必ず失敗させる(途中で失敗する状況を作るため。テスト用 DB にだけ作る)。"""
+    conn.execute(
+        "CREATE TRIGGER fail_link BEFORE INSERT ON memo_tags BEGIN SELECT RAISE(ABORT, 'テスト用の失敗'); END"
+    )
+
+
+def count(conn, table):
+    return conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+
+
+def test_保存の途中で失敗したらメモもタグも残らずidも振られない(repo, conn):
+    break_memo_tags(conn)
+    m = memo(tags=["物理"])
+
+    with pytest.raises(sqlite3.IntegrityError):
+        repo.add(m)
+
+    assert (count(conn, "memos"), count(conn, "tags"), m.id) == (0, 0, None)
