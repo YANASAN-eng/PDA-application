@@ -40,9 +40,9 @@
 {% block scripts %}
 <dialog id="memo-dialog" class="memo-dialog" aria-labelledby="memo-dialog-heading">
   <form method="post" action="/memos" class="memo-form">
-    <h2 id="memo-dialog-heading">新しいメモ</h2>
+    <div class="dialog-head"><h2 id="memo-dialog-heading">新しいメモ</h2><button type="button" class="dialog-close" aria-label="閉じる" title="閉じる" data-close><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
     {% with prefix="dialog-", form={"title": "", "body": "", "tags": ""} %}{% include "_memo_form_fields.html" %}{% endwith %}
-    <p><button type="submit" class="primary">保存</button> <button type="button" data-close>やめる</button></p>
+    <p><button type="submit" class="primary">保存</button></p>
   </form>
   <form method="post" action="" id="memo-dialog-delete" data-confirm="" hidden><button type="submit">このメモを削除</button></form>
 </dialog>

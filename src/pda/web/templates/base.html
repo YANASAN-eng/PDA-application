@@ -91,7 +91,10 @@
     /* 編集ポップアップ */
     dialog { width: min(32rem, calc(100vw - 2rem)); border: none; border-radius: 22px; padding: 18px 20px; background: var(--bg); color: var(--fg); box-shadow: 0 3px 0 var(--shadow); }
     dialog::backdrop { background: rgba(74, 53, 64, .35); }
-    dialog h2 { margin-top: 0; }
+    dialog h2 { margin: 0; }
+    .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .dialog-close { min-width: 40px; min-height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
+    .dialog-close:hover { color: var(--fg); }
     dialog input[name=title] { width: 100%; }
 
     /* キーワード: 語を横に詰めて並べる。PC ではグループを 2 列、狭い画面では 1 列 */

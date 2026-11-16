@@ -2,9 +2,9 @@
    JavaScript が動かないときは、リンクがそのまま編集ページ(/tasks/{id}/edit)を開く #}
 <dialog id="task-edit-dialog" aria-labelledby="task-edit-heading">
   <form method="post" action="">
-    <h2 id="task-edit-heading">タスクの編集</h2>
+    <div class="dialog-head"><h2 id="task-edit-heading">タスクの編集</h2><button type="button" class="dialog-close" aria-label="閉じる" title="閉じる" data-close><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
     {% with prefix="edit-", form={"title": "", "priority": "MEDIUM", "due": "", "detail": ""} %}{% include "_task_form_fields.html" %}{% endwith %}
-    <p><button type="submit" class="primary">保存</button> <button type="button" data-close>やめる</button></p>
+    <p><button type="submit" class="primary">保存</button></p>
   </form>
 </dialog>
 <script>
