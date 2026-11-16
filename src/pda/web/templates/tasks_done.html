@@ -8,6 +8,7 @@
   <li>
     <span class="title">{{ t.title }}</span>
     <span class="meta">優先度 {{ t.priority.label }}{% if t.due %} / 期限 {{ t.due.isoformat() }}{% endif %}</span>
+    {% if t.detail %}<span class="detail">{{ t.detail }}</span>{% endif %}
     <form class="inline" method="post" action="/tasks/{{ t.id }}/undone"><button type="submit">未完了に戻す</button></form>
     <a href="/tasks/{{ t.id }}/delete">削除</a>
   </li>

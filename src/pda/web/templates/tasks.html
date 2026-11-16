@@ -15,6 +15,7 @@
     </label>
     <label>期限 <input type="date" name="due" value="{{ form.due }}"></label>
   </p>
+  <p><label>詳細(任意)<br><textarea name="detail" rows="3" placeholder="目的や補足(例: シチュー用)">{{ form.detail }}</textarea></label></p>
   <p><button type="submit">追加</button></p>
 </form>
 <ul class="items">
@@ -22,6 +23,7 @@
   <li>
     <span class="title{% if t.is_overdue(today) %} overdue{% endif %}">{{ t.display_title(today) }}</span>
     <span class="meta">優先度 {{ t.priority.label }}{% if t.due %} / 期限 {{ t.due.isoformat() }}{% endif %}</span>
+    {% if t.detail %}<span class="detail">{{ t.detail }}</span>{% endif %}
     <form class="inline" method="post" action="/tasks/{{ t.id }}/done"><button type="submit">完了</button></form>
     <a href="/tasks/{{ t.id }}/delete">削除</a>
   </li>

@@ -30,8 +30,8 @@ def tasks(client, db_path):
     conn.close()
 
 
-def task(title, priority=Priority.MEDIUM, due=None, done=False, created_at=datetime(2026, 11, 1, 9, 0)):
-    return Task(title=title, priority=priority, due=due, done=done, created_at=created_at)
+def task(title, priority=Priority.MEDIUM, due=None, done=False, created_at=datetime(2026, 11, 1, 9, 0), detail=""):
+    return Task(title=title, priority=priority, due=due, done=done, created_at=created_at, detail=detail)
 
 
 def appear_in_order(html: str, *texts: str) -> bool:
@@ -219,3 +219,40 @@ def test_一覧から削除の確認ページへ行ける(client, tasks, done, p
 @pytest.mark.parametrize("method", ["get", "post"])
 def test_存在しないタスクは削除できない(client, method):
     assert getattr(client, method)("/tasks/999/delete").status_code == 404
+
+
+# --- 詳細 ------------------------------------------------------------------
+def test_詳細を付けて追加できる(client, tasks):
+    client.post("/tasks", data={"title": "牛乳を買う", "priority": "LOW", "due": "", "detail": "シチュー用"})
+
+    assert tasks.list_all()[0].detail == "シチュー用"
+
+
+def test_詳細の欄を送らなくても追加できる(client, tasks):
+    client.post("/tasks", data={"title": "牛乳を買う", "priority": "LOW", "due": ""})
+
+    assert tasks.list_all()[0].detail == ""
+
+
+def test_追加フォームに詳細の入力欄がある(client):
+    assert '<textarea name="detail"' in client.get("/tasks").text
+
+
+def test_エラーのときも入力した詳細は残る(client):
+    res = client.post("/tasks", data={"title": " ", "priority": "LOW", "due": "", "detail": "シチュー用"})
+
+    assert "シチュー用" in res.text
+
+
+@pytest.mark.parametrize("done, page", [(False, "/tasks"), (True, "/tasks/done")], ids=["未完了の一覧", "完了済みページ"])
+def test_一覧に詳細が表示される(client, tasks, done, page):
+    tasks.add(task("牛乳を買う", done=done, detail="シチュー用"))
+
+    assert "シチュー用" in client.get(page).text
+
+
+def test_削除の確認ページに詳細が表示される(client, tasks):
+    t = task("牛乳を買う", detail="シチュー用")
+    tasks.add(t)
+
+    assert "シチュー用" in client.get(f"/tasks/{t.id}/delete").text

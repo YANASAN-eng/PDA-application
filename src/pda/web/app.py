@@ -62,7 +62,7 @@ def create_app(db_path: Path, *, clock: Callable[[], datetime] = _system_clock) 
             "tasks": items,
             "today": clock().date(),
             "priorities": list(Priority),
-            "form": form or {"title": "", "priority": Priority.MEDIUM.name, "due": ""},
+            "form": form or {"title": "", "priority": Priority.MEDIUM.name, "due": "", "detail": ""},
             "error": error,
         }
         return TEMPLATES.TemplateResponse(request, "tasks.html", context, status_code=status)
@@ -72,10 +72,22 @@ def create_app(db_path: Path, *, clock: Callable[[], datetime] = _system_clock) 
         return render_task_list(request)
 
     @app.post("/tasks")
-    def task_create(request: Request, title: str = Form(""), priority: str = Form(""), due: str = Form("")):
-        form = {"title": title, "priority": priority, "due": due}
+    def task_create(
+        request: Request,
+        title: str = Form(""),
+        priority: str = Form(""),
+        due: str = Form(""),
+        detail: str = Form(""),
+    ):
+        form = {"title": title, "priority": priority, "due": due, "detail": detail}
         try:
-            task = Task(title=title, priority=_parse_priority(priority), due=_parse_date(due), created_at=clock())
+            task = Task(
+                title=title,
+                priority=_parse_priority(priority),
+                due=_parse_date(due),
+                detail=detail,
+                created_at=clock(),
+            )
         except ValueError as e:
             return render_task_list(request, form=form, error=str(e), status=400)
         with open_db() as conn:
