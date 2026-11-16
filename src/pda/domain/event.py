@@ -66,3 +66,38 @@ def events_on(day: date, events: Iterable[AllDayEvent | TimedEvent]) -> list[All
     all_day = [e for e in todays if isinstance(e, AllDayEvent)]
     timed = sorted((e for e in todays if isinstance(e, TimedEvent)), key=lambda e: e.start)
     return all_day + timed
+
+
+Event = AllDayEvent | TimedEvent
+
+
+def _candidate_days(event: Event) -> Iterable[date]:
+    """予定が出るかもしれない日(開始日〜終了日)。実際に出るかは occurs_on で決める。"""
+    if isinstance(event, AllDayEvent):
+        first, last = event.start, event.end or event.start
+    else:
+        first, last = event.start.date(), (event.end or event.start).date()
+    day = first
+    while day <= last:
+        yield day
+        day += timedelta(days=1)
+
+
+def _by_day(events: Iterable[Event], days: Iterable[date]) -> list[tuple[date, list[Event]]]:
+    events = list(events)
+    result = [(day, events_on(day, events)) for day in days]
+    return [(day, items) for day, items in result if items]
+
+
+def upcoming_by_day(events: Iterable[Event], today: date) -> list[tuple[date, list[Event]]]:
+    """今日以降で予定のある日を、今日から順に。日の中は events_on の順(終日 → 開始時刻順)。"""
+    events = list(events)
+    days = {day for e in events for day in _candidate_days(e) if day >= today}
+    return _by_day(events, sorted(days))
+
+
+def past_by_day(events: Iterable[Event], today: date) -> list[tuple[date, list[Event]]]:
+    """今日より前で予定のあった日を、新しい日から順に。"""
+    events = list(events)
+    days = {day for e in events for day in _candidate_days(e) if day < today}
+    return _by_day(events, sorted(days, reverse=True))

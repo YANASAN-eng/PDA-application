@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 import pytest
 
-from pda.domain.event import AllDayEvent, TimedEvent, events_on
+from pda.domain.event import AllDayEvent, TimedEvent, events_on, past_by_day, upcoming_by_day
 
 DAY = date(2026, 11, 15)
 NEXT = date(2026, 11, 16)
@@ -123,3 +123,57 @@ def test_前日から続く予定はその日の最初の時刻付き予定に�
 def test_保存前の予定はidを持たない():
     assert AllDayEvent(title="誕生日", start=DAY).id is None
     assert TimedEvent(title="会議", start=at(DAY, 10)).id is None
+
+
+# --- 日ごとにまとめる(予定の画面) ----------------------------------------------
+TODAY = date(2026, 11, 16)
+
+
+def d(day: int) -> date:
+    return date(2026, 11, day)
+
+
+def test_今日から先の予定を日ごとに今日から並べ予定のない日は飛ばす():
+    later = TimedEvent(title="会議", start=at(d(20), 10))
+    today = AllDayEvent(title="誕生日", start=TODAY)
+    past = TimedEvent(title="昨日の会議", start=at(d(15), 10))
+
+    assert upcoming_by_day([later, past, today], TODAY) == [(TODAY, [today]), (d(20), [later])]
+
+
+def test_日の中は終日予定から開始時刻の順():
+    late = TimedEvent(title="夕食", start=at(TODAY, 19))
+    early = TimedEvent(title="朝会", start=at(TODAY, 9))
+    all_day = AllDayEvent(title="誕生日", start=TODAY)
+
+    assert upcoming_by_day([late, early, all_day], TODAY) == [(TODAY, [all_day, early, late])]
+
+
+def test_日をまたぐ予定は重なる日すべてに出る():
+    trip = AllDayEvent(title="旅行", start=d(17), end=d(19))
+
+    assert [day for day, _ in upcoming_by_day([trip], TODAY)] == [d(17), d(18), d(19)]
+
+
+def test_昨日から続いている予定は今日の分から出る():
+    trip = AllDayEvent(title="旅行", start=d(15), end=d(17))
+
+    assert [day for day, _ in upcoming_by_day([trip], TODAY)] == [TODAY, d(17)]
+
+
+def test_翌日0時ちょうどに終わる予定は翌日に出ない():
+    night = TimedEvent(title="夜勤", start=at(TODAY, 22), end=at(d(17), 0))
+
+    assert [day for day, _ in upcoming_by_day([night], TODAY)] == [TODAY]
+
+
+def test_過去の予定は今日より前の日を新しい日から並べる():
+    old = TimedEvent(title="先週", start=at(d(9), 10))
+    yesterday = TimedEvent(title="昨日", start=at(d(15), 10))
+    today = TimedEvent(title="今日", start=at(TODAY, 10))
+
+    assert past_by_day([old, today, yesterday], TODAY) == [(d(15), [yesterday]), (d(9), [old])]
+
+
+def test_予定がなければどちらも空():
+    assert upcoming_by_day([], TODAY) == [] and past_by_day([], TODAY) == []
