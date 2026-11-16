@@ -14,6 +14,11 @@ from pda.db._convert import datetime_from_db, datetime_to_db
 from pda.domain.memo import Memo
 
 
+def _to_row(memo: Memo) -> tuple:
+    """memos の (title, body, created_at, updated_at) の値。"""
+    return (memo.title, memo.body, datetime_to_db(memo.created_at), datetime_to_db(memo.updated_at))
+
+
 class MemoRepository:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
@@ -25,7 +30,7 @@ class MemoRepository:
         with self._transaction():
             cur = self._conn.execute(
                 "INSERT INTO memos (title, body, created_at, updated_at) VALUES (?, ?, ?, ?)",
-                (memo.title, memo.body, datetime_to_db(memo.created_at), datetime_to_db(memo.updated_at)),
+                _to_row(memo),
             )
             new_id = cur.lastrowid
             self._link_tags(new_id, memo.tags)
@@ -46,6 +51,20 @@ class MemoRepository:
             created_at=datetime_from_db(created_at),
             updated_at=datetime_from_db(updated_at),
         )
+
+    def update(self, memo: Memo) -> None:
+        """内容とタグを書き換える。タグは結び付けを付け直す(外したタグも tags には残る)。"""
+        if memo.id is None:
+            raise ValueError("保存前のメモは更新できません")
+        with self._transaction():
+            cur = self._conn.execute(
+                "UPDATE memos SET title = ?, body = ?, created_at = ?, updated_at = ? WHERE id = ?",
+                (*_to_row(memo), memo.id),
+            )
+            if cur.rowcount == 0:
+                raise LookupError(f"メモが見つかりません(id={memo.id})")
+            self._conn.execute("DELETE FROM memo_tags WHERE memo_id = ?", (memo.id,))
+            self._link_tags(memo.id, memo.tags)
 
     @contextmanager
     def _transaction(self) -> Iterator[None]:

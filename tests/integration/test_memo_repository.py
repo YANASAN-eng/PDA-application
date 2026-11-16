@@ -96,3 +96,47 @@ def test_保存の途中で失敗したらメモもタグも残らずidも振ら
         repo.add(m)
 
     assert (count(conn, "memos"), count(conn, "tags"), m.id) == (0, 0, None)
+
+
+# --- 更新 ------------------------------------------------------------------
+def test_更新すると内容とタグが置き換わる(repo):
+    m = memo(tags=["物理", "IT"])
+    repo.add(m)
+
+    m.edit(title="改題", body="追記", tags=["IT", "数学"], now=T1)
+    repo.update(m)
+
+    assert repo.get(m.id) == m
+
+
+def test_更新で外したタグもタグ一覧に残る(repo, conn):
+    m = memo(tags=["物理"])
+    repo.add(m)
+
+    m.edit(title=m.title, body=m.body, tags=[], now=T1)
+    repo.update(m)
+
+    assert conn.execute("SELECT name FROM tags").fetchall() == [("物理",)]
+
+
+def test_保存前のメモは更新できない(repo):
+    with pytest.raises(ValueError):
+        repo.update(memo())
+
+
+def test_存在しないメモは更新できない(repo):
+    with pytest.raises(LookupError):
+        repo.update(Memo(id=999, title="幽霊", created_at=T0))
+
+
+def test_更新の途中で失敗したら保存済みの内容は変わらない(repo, conn):
+    m = memo(tags=["物理"])
+    repo.add(m)
+    before = repo.get(m.id)
+    break_memo_tags(conn)
+
+    m.edit(title="改題", body="追記", tags=["数学"], now=T1)
+    with pytest.raises(sqlite3.IntegrityError):
+        repo.update(m)
+
+    assert (repo.get(m.id), count(conn, "tags")) == (before, 1)
