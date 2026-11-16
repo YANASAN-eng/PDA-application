@@ -62,3 +62,9 @@ def test_デザインの色と書体を使う(client):
 
     assert "--accent: #B4501C" in html and "--bg: #FFFAEC" in html
     assert "Zen+Maru+Gothic" in html
+
+
+@pytest.mark.parametrize("path, label", [("/tasks", "ToDo"), ("/memos", "メモ"), ("/news", "ニュース")])
+def test_画面の見出しはタブの名前と同じ表記(client, path, label):
+    # 2026-11-16: タブは「メモ」なのに見出しが「めも」で統一感がなかった(ユーザー指摘)
+    assert f"<h1>{label}</h1>" in client.get(path).text

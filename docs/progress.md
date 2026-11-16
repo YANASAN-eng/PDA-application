@@ -3,12 +3,12 @@
 作業を中断・再開するときの引き継ぎ用。**再開したらまずここを読む。** 区切りごとに更新する。
 
 ## 最終更新: 2026-11-16
-- `main` は全テスト緑(493 件)。作業中のブランチなし
+- `main` は全テスト緑(496 件)。作業中のブランチなし
 - 再開時の確認コマンド:
   ```powershell
   cd C:\development\pda
   .\.venv\Scripts\Activate.ps1
-  pytest -q            # 493 passed のはず
+  pytest -q            # 496 passed のはず
   git log --oneline --graph -10
   ```
 
