@@ -8,7 +8,6 @@
 SQLite の接続は「開いた関数の中で使い切って閉じる」(sqlite3 の接続は作ったスレッドでしか使えない)。
 """
 
-import os
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import date, datetime
@@ -18,12 +17,12 @@ from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+from pda import config
 from pda.db.migrate import connect, migrate_file
 from pda.db.task_repository import TaskRepository
 from pda.domain.task import Priority, Task, completed_by_newest, incomplete_by_priority
 
 TEMPLATES = Jinja2Templates(directory=Path(__file__).parent / "templates")
-DEFAULT_DB = Path("data/pda.db")
 
 
 def _system_clock() -> datetime:
@@ -32,8 +31,8 @@ def _system_clock() -> datetime:
 
 
 def create_app_from_env() -> FastAPI:
-    """環境変数 PDA_DB(既定 data/pda.db)の DB で本番用のアプリを作る。"""
-    db_path = Path(os.environ.get("PDA_DB", DEFAULT_DB))
+    """設定の DB(config.db_path()。環境変数 PDA_DB で変更可)で本番用のアプリを作る。"""
+    db_path = config.db_path()
     db_path.parent.mkdir(parents=True, exist_ok=True)
     return create_app(db_path)
 
