@@ -13,8 +13,10 @@ from pathlib import Path
 
 from pda import config
 from pda.db.article_repository import ArticleRepository
+from pda.db.keyword_repository import KeywordRepository
 from pda.db.migrate import connect, migrate_file
 from pda.domain.article import Feed
+from pda.domain.keyword import as_groups
 from pda.news.daily import DailyReport, run_daily
 from pda.news.fetcher import Fetcher, HttpFetcher
 from pda.news.summarizer import MockSummarizer, Summarizer
@@ -43,7 +45,7 @@ def run_job(
             fetcher=fetcher or HttpFetcher(),
             repo=ArticleRepository(conn),
             summarizer=make_summarizer(config.SUMMARIZER),
-            groups=config.KEYWORD_GROUPS,
+            groups=as_groups(KeywordRepository(conn).list_all()),  # キーワードは DB で管理(画面で編集)
             limit=config.DAILY_SUMMARY_LIMIT,
             now=now,
         )

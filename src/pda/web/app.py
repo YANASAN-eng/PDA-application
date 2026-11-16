@@ -18,8 +18,10 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from pda import config
+from pda.db.keyword_repository import KeywordRepository
 from pda.db.migrate import connect, migrate_file
 from pda.db.task_repository import TaskRepository
+from pda.domain.keyword import Keyword, KeywordGroup
 from pda.domain.task import Priority, Task, completed_by_newest, incomplete_by_priority
 
 TEMPLATES = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -132,7 +134,52 @@ def create_app(db_path: Path, *, clock: Callable[[], datetime] = _system_clock) 
             repo.delete(task_id)
         return RedirectResponse("/tasks/done" if task.done else "/tasks", status_code=303)
 
+    # --- キーワード(ニュースの絞り込み) ---------------------------------------
+    def render_keywords(request: Request, *, form: dict | None = None, error: str | None = None, status: int = 200):
+        with open_db() as conn:
+            all_keywords = KeywordRepository(conn).list_all()
+        # グループの表示順は Enum の定義順。グループの中は登録した順
+        by_group = [(g, [k for k in all_keywords if k.group == g]) for g in KeywordGroup]
+        context = {
+            "by_group": by_group,
+            "groups": list(KeywordGroup),
+            "form": form or {"group": KeywordGroup.MATH_PHYSICS.name, "word": ""},
+            "error": error,
+        }
+        return TEMPLATES.TemplateResponse(request, "keywords.html", context, status_code=status)
+
+    @app.get("/keywords")
+    def keyword_list(request: Request):
+        return render_keywords(request)
+
+    @app.post("/keywords")
+    def keyword_create(request: Request, group: str = Form(""), word: str = Form("")):
+        form = {"group": group, "word": word}
+        try:
+            keyword = Keyword(group=_parse_group(group), word=word)
+            with open_db() as conn:
+                KeywordRepository(conn).add(keyword)  # 重複なら DuplicateKeywordError(ValueError)
+        except ValueError as e:
+            return render_keywords(request, form=form, error=str(e), status=400)
+        return RedirectResponse("/keywords", status_code=303)
+
+    @app.post("/keywords/{keyword_id}/delete")
+    def keyword_delete(keyword_id: int):
+        with open_db() as conn:
+            try:
+                KeywordRepository(conn).delete(keyword_id)
+            except LookupError:
+                raise HTTPException(status_code=404, detail="キーワードが見つかりません") from None
+        return RedirectResponse("/keywords", status_code=303)
+
     return app
+
+
+def _parse_group(name: str) -> KeywordGroup:
+    try:
+        return KeywordGroup[name]
+    except KeyError:
+        raise ValueError("グループが正しくありません") from None
 
 
 def _parse_priority(name: str) -> Priority:
