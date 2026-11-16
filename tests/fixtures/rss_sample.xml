@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Example Science</title>
+    <link>https://example.com/</link>
+    <description>テスト用の RSS 2.0</description>
+    <item>
+      <title>量子誤り訂正の新手法</title>
+      <link>https://example.com/articles/qec</link>
+      <description>&lt;p&gt;表面符号の&lt;b&gt;しきい値&lt;/b&gt;を改善。
+        誤り率 &amp;lt; 1%&lt;/p&gt;</description>
+      <pubDate>Sun, 15 Nov 2026 21:30:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>公開日時のない記事</title>
+      <link>https://example.com/articles/no-date</link>
+    </item>
+    <item>
+      <title>日本時間で書かれた記事</title>
+      <link>https://example.com/articles/jst</link>
+      <description>概要</description>
+      <pubDate>Mon, 16 Nov 2026 08:00:00 +0900</pubDate>
+    </item>
+    <item>
+      <title>危ないリンクの記事</title>
+      <link>javascript:alert(1)</link>
+    </item>
+    <item>
+      <title>   </title>
+      <link>https://example.com/articles/no-title</link>
+    </item>
+  </channel>
+</rss>

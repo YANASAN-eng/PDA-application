@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Example Atom</title>
+  <id>https://example.org/</id>
+  <updated>2026-11-16T00:00:00Z</updated>
+  <entry>
+    <title>Topological quantum computing</title>
+    <link href="https://example.org/entries/1"/>
+    <id>https://example.org/entries/1</id>
+    <updated>2026-11-15T12:00:00Z</updated>
+    <summary type="html">&lt;em&gt;Majorana&lt;/em&gt; modes</summary>
+  </entry>
+</feed>

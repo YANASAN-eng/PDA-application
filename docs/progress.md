@@ -3,36 +3,41 @@
 作業を中断・再開するときの引き継ぎ用。**再開したらまずここを読む。** 区切りごとに更新する。
 
 ## 最終更新: 2026-11-16
-- `main` は全テスト緑(214 件)。作業中のブランチなし
+- `main` は全テスト緑(317 件)。作業中のブランチなし
 - 再開時の確認コマンド:
   ```powershell
   cd C:\development\pda
   .\.venv\Scripts\Activate.ps1
-  pytest -q            # 214 passed のはず
+  pytest -q            # 317 passed のはず
   git log --oneline --graph -10
   ```
 
 ## できたもの
 | 層 | ToDo | 予定 | メモ | ニュース |
 |---|---|---|---|---|
-| ドメイン(`src/pda/domain/`) | ✅ `task.py` | ✅ `event.py` | ✅ `memo.py` | ⬜ 未着手 |
-| スキーマ(`src/pda/db/migrations/0001_initial.sql`) | ✅ | ✅ | ✅(`memos`・`tags`・`memo_tags`) | ⬜ `0002` で追加予定 |
-| リポジトリ(`src/pda/db/`) | ✅ `task_repository.py` | ✅ `event_repository.py` | ✅ `memo_repository.py` | ⬜ |
+| ドメイン(`src/pda/domain/`) | ✅ `task.py` | ✅ `event.py` | ✅ `memo.py` | ✅ `article.py`(記事・フィード) |
+| スキーマ(`src/pda/db/migrations/0001_initial.sql`) | ✅ | ✅ | ✅(`memos`・`tags`・`memo_tags`) | ✅ `0003`(`feeds`・`articles`) |
+| リポジトリ(`src/pda/db/`) | ✅ `task_repository.py` | ✅ `event_repository.py` | ✅ `memo_repository.py` | ✅ `article_repository.py` |
 | Web 画面(`src/pda/web/`) | ✅ 一覧・追加・完了・完了済み・削除(編集は未) | ⬜ | ⬜ | ⬜ |
 
 基盤:
 - マイグレーションの仕組み `src/pda/db/migrate.py`(1 ファイル = 1 トランザクション、適用前バックアップ、番号検査)
-- マイグレーションの凍結検査 `tests/integration/test_migration_freeze.py`(`0001`・`0002` 登録済み)
+- マイグレーションの凍結検査 `tests/integration/test_migration_freeze.py`(`0001`〜`0003` 登録済み)
+- ニュースの処理(`src/pda/news/`): 絞り込みと優先順位 `filter.py` / 要約器 `summarizer.py`(モック)/ RSS・Atom の解析と取得 `fetcher.py` / 日次処理 `daily.py`
+- ニュースの入口 `python -m pda.news_job`、設定 `src/pda/config.py`(フィードは空。キーワードは ⚠ 案)
 - 開発サーバー: `uvicorn pda.web.app:create_app_from_env --factory --reload`(DB は `data/pda.db`。git 管理外)
 - ER 図 `docs/db/er.md`(閲覧用ページ: https://claude.ai/artifact/HVduwaWzGh3SGvVeWrv6uS)
 
 ## 直近にやったこと(2026-11-16)
-- メモのリポジトリ `MemoRepository`(保存は `memos`・`tags`・`memo_tags` を 1 トランザクション。使われなくなったタグも残す)
-- ToDo の Web 画面(`feature/web-todo`): 一覧(優先度順・超過の印)/ 追加(詳細つき)/ 完了 / 完了済み一覧(作成日時の新しい順)と未完了に戻す / 削除(ブラウザ標準の確認ポップアップ・物理削除)
-- マイグレーション `0002`: `tasks.detail`(「なし」は空文字)
-- 決定の詳細は `docs/requirements.md`(2026-11-16 の行)
+- メモのリポジトリ、ToDo の Web 画面(詳細つき・完了済み・確認ポップアップで物理削除)、`0002`(`tasks.detail`)
+- ニュースのビジネスロジック一式(`feature/news-domain` → `news-storage` → `news-fetch`)。決定は `docs/requirements.md` のニュース節
+  - 1 日の要約上限は「その日の合計」で数える(同じ日に何度実行しても超えない。本物の API に切り替えたときの費用のため)
+  - news は db を知らない。保存先は `pda.news.daily.ArticleStore` Protocol。組み立ては `pda/news_job.py`
 
 ## その後の候補(順番は未決定)
+- **フィードの指定**(ユーザーから。`config.FEEDS` に足す)→ 本物で一度動かして RSS が取れるか確かめる
+- ニュースの Web 画面(要約済みの記事を優先順位順に)
+- 日次処理のスケジューラ(Windows タスクスケジューラ等)
 - ToDo の編集(タイトル・優先度・期限・詳細の変更)
 - 予定 → メモの Web 画面、最後に「今日」のまとめ画面(この順は決定済み)
 - タグの候補一覧を返す処理(タグを残すと決めた理由が「候補に出すため」なので、Web 画面で必要になったら作る。並び順は要相談)
@@ -44,6 +49,7 @@
 | 項目 | 場所 | 現状 |
 |---|---|---|
 | このアプリの役割の文面 | `CLAUDE.md` / `docs/requirements.md` のミッション節 | Claude の案のまま |
+| ニュースの絞り込みキーワード | `src/pda/config.py` の `KEYWORD_GROUPS` | Claude の案のまま |
 | タグの英字の大文字小文字を区別するか | `docs/requirements.md` のメモ節 | 区別する(`AI` と `ai` は別)で実装済み。変えるならスキーマの照合順序も変わる |
 
 ## これまでに決めた進め方(詳細は CLAUDE.md)

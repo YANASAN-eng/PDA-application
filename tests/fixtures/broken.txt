@@ -1,0 +1,2 @@
+this is not a feed at all
+<html><body>404 Not Found
