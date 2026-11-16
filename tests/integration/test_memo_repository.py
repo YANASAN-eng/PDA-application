@@ -140,3 +140,18 @@ def test_更新の途中で失敗したら保存済みの内容は変わらな�
         repo.update(m)
 
     assert (repo.get(m.id), count(conn, "tags")) == (before, 1)
+
+
+# --- 削除 ------------------------------------------------------------------
+def test_削除するとメモと結び付きが消えタグは残る(repo, conn):
+    m = memo(tags=["物理"])
+    repo.add(m)
+
+    repo.delete(m.id)
+
+    assert (repo.get(m.id), count(conn, "memo_tags"), count(conn, "tags")) == (None, 0, 1)
+
+
+def test_存在しないメモは削除できない(repo):
+    with pytest.raises(LookupError):
+        repo.delete(999)

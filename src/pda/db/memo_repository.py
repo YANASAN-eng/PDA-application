@@ -66,6 +66,12 @@ class MemoRepository:
             self._conn.execute("DELETE FROM memo_tags WHERE memo_id = ?", (memo.id,))
             self._link_tags(memo.id, memo.tags)
 
+    def delete(self, memo_id: int) -> None:
+        """メモを消す。memo_tags の結び付きは ON DELETE CASCADE で消え、tags は残る。"""
+        cur = self._conn.execute("DELETE FROM memos WHERE id = ?", (memo_id,))
+        if cur.rowcount == 0:
+            raise LookupError(f"メモが見つかりません(id={memo_id})")
+
     @contextmanager
     def _transaction(self) -> Iterator[None]:
         """中の書き込みをすべて反映するか、1 つも反映しないか(接続は自動コミットなので明示する)。"""
