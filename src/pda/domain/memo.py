@@ -1,5 +1,7 @@
 """メモのドメインモデル(I/O なし)。"""
 
+import re
+from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
@@ -58,3 +60,21 @@ def search_memos(memos: Iterable[Memo], keyword: str) -> list[Memo]:
 def memos_by_updated(memos: Iterable[Memo]) -> list[Memo]:
     """更新日時の新しい順。同じ日時では元の順序を保つ(sorted は安定ソート)。"""
     return sorted(memos, key=lambda m: m.updated_at, reverse=True)
+
+
+_TAG_SEPARATORS = re.compile(r"[\s,、]+")  # \s は全角の空白も含む
+
+
+def parse_tag_input(text: str) -> list[str]:
+    """入力欄の文字列をタグの並びにする。空白か「,」「、」で区切り、各タグの先頭の # を取り除く。
+
+    空になったものは捨てる。重複はそのまま返す(Memo が 1 つにまとめる)。
+    """
+    tags = (part.lstrip("#") for part in _TAG_SEPARATORS.split(text))
+    return [t for t in tags if t]
+
+
+def tag_counts(memos: Iterable[Memo]) -> list[tuple[str, int]]:
+    """メモに付いているタグと、そのタグが付いたメモの数。多い順、同数なら名前順。"""
+    counts = Counter(tag for m in memos for tag in m.tags)
+    return sorted(counts.items(), key=lambda item: (-item[1], item[0]))

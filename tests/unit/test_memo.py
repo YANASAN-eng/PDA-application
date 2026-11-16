@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from pda.domain.memo import Memo, memos_by_updated, search_memos, with_tag
+from pda.domain.memo import Memo, memos_by_updated, parse_tag_input, search_memos, tag_counts, with_tag
 
 T0 = datetime(2026, 11, 15, 9, 0)
 T1 = datetime(2026, 11, 15, 10, 0)
@@ -153,3 +153,33 @@ def test_保存前のメモはidを持たない():
 
 def test_idを指定してメモを作れる():
     assert Memo(id=7, title="量子計算のメモ", created_at=T0).id == 7
+
+
+# --- タグの入力 ------------------------------------------------------------
+@pytest.mark.parametrize(
+    "text, tags",
+    [
+        ("数学 物理", ["数学", "物理"]),
+        ("数学,物理", ["数学", "物理"]),
+        ("数学、物理", ["数学", "物理"]),
+        ("数学\u3000物理", ["数学", "物理"]),  # 全角の空白
+        ("#数学 #物理", ["数学", "物理"]),  # 先頭の # は取り除く
+        ("  数学 ,, 、 物理  ", ["数学", "物理"]),  # 区切りが続いても空のタグはできない
+        ("C# #C#", ["C#", "C#"]),  # 途中や末尾の # は残す(重複はメモが 1 つにまとめる)
+        ("", []),
+        ("# ,", []),
+    ],
+)
+def test_タグの入力は空白かカンマか読点で区切り先頭のシャープを取り除く(text, tags):
+    assert parse_tag_input(text) == tags
+
+
+# --- タグの絞り込みボタン ------------------------------------------------------
+def test_タグと付いているメモの数を多い順に同数なら名前順に返す():
+    memos = [memo(tags=["物理", "数学"]), memo(tags=["数学"]), memo(tags=["IT", "物理"]), memo(tags=["数学"])]
+
+    assert tag_counts(memos) == [("数学", 3), ("物理", 2), ("IT", 1)]
+
+
+def test_メモがなければタグもない():
+    assert tag_counts([]) == []
