@@ -38,26 +38,8 @@ FEEDS: list[Feed] = [
     Feed(name="arXiv: cs.LG", url="https://rss.arxiv.org/rss/cs.LG"),
 ]
 
-# 絞り込みのキーワード(⚠ 案。2026-11-16 Claude 作成。ユーザー確認待ち)
-#   どちらかのグループの語がタイトルか概要文にあれば対象。両方なら優先(pda.news.filter)
-#   英字だけの語は単語単位・大文字小文字を区別しない(複数形には当たらないので必要なら足す)
-#   日本語は部分一致
-KEYWORD_GROUPS: dict[str, list[str]] = {
-    "物理・数学": [
-        "量子", "物理", "数学", "統計力学", "熱力学", "相対論", "素粒子", "トポロジー", "位相",
-        "幾何", "代数", "確率論", "微分方程式", "最適化", "定理",
-        "quantum", "physics", "mathematics", "math", "topology", "topological", "geometry",
-        "algebra", "probability", "thermodynamics", "entropy", "relativity", "particle physics",
-        "differential equation", "differential equations", "optimization", "theorem",
-    ],
-    "IT": [
-        "機械学習", "深層学習", "人工知能", "生成AI", "アルゴリズム", "暗号", "コンピュータ",
-        "ソフトウェア", "プログラミング", "データベース", "セキュリティ", "半導体",
-        "AI", "LLM", "LLMs", "machine learning", "deep learning", "neural network", "neural networks",
-        "algorithm", "algorithms", "cryptography", "encryption", "software", "programming",
-        "database", "compiler", "GPU", "GPUs", "semiconductor", "computer", "computers", "computing",
-    ],
-}
+# 絞り込みのキーワードは DB で管理する(2026-11-16 ユーザー決定。Web 画面 /keywords で編集)。
+# 初期データは migrations/0004_add_keywords.sql
 
 # 1 日に要約する件数の上限(同じ日に何度実行しても合計で数える)
 DAILY_SUMMARY_LIMIT = 30
