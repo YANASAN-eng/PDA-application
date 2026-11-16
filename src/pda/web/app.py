@@ -21,10 +21,12 @@ from pda import config
 from pda.db.article_repository import ArticleRepository
 from pda.db.keyword_repository import KeywordRepository
 from pda.db.migrate import connect, migrate_file
+from pda.db.memo_repository import MemoRepository
 from pda.db.task_repository import TaskRepository
 from pda.domain.keyword import Keyword, KeywordGroup, as_groups
-from pda.news.filter import matched_groups, news_by_day
+from pda.domain.memo import Memo, memos_by_updated, parse_tag_input, search_memos, tag_counts, with_tag
 from pda.domain.task import Priority, Task, completed_by_newest, incomplete_by_priority
+from pda.news.filter import matched_groups, news_by_day
 from pda.web.pagination import paginate
 
 NEWS_PER_PAGE = 30  # 1 日に要約する件数の上限と同じ(だいたい 1 ページ = 1 日)
@@ -223,6 +225,73 @@ def create_app(db_path: Path, *, clock: Callable[[], datetime] = _system_clock) 
             except LookupError:
                 raise HTTPException(status_code=404, detail="キーワードが見つかりません") from None
         return RedirectResponse("/keywords", status_code=303)
+
+    # --- メモ ----------------------------------------------------------------------
+    def memo_or_404(conn, memo_id: int) -> Memo:
+        memo = MemoRepository(conn).get(memo_id)
+        if memo is None:
+            raise HTTPException(status_code=404, detail="メモが見つかりません")
+        return memo
+
+    @app.get("/memos")
+    def memo_list(request: Request, q: str = "", tag: str = ""):
+        with open_db() as conn:
+            all_memos = MemoRepository(conn).list_all()
+        shown = with_tag(all_memos, tag) if tag else all_memos
+        shown = memos_by_updated(search_memos(shown, q))
+        context = {"memos": shown, "chips": tag_counts(all_memos), "tag": tag, "q": q}
+        return TEMPLATES.TemplateResponse(request, "memos.html", context)
+
+    def render_memo_edit(request: Request, *, action: str, form: dict, delete_action: str | None = None,
+                         error: str | None = None, status: int = 200):
+        context = {"action": action, "form": form, "delete_action": delete_action, "error": error}
+        return TEMPLATES.TemplateResponse(request, "memo_edit.html", context, status_code=status)
+
+    @app.get("/memos/new")
+    def memo_new_page(request: Request):
+        """新規作成のページ(ポップアップが使えないときの代わり)。"""
+        return render_memo_edit(request, action="/memos", form={"title": "", "body": "", "tags": ""})
+
+    @app.post("/memos")
+    def memo_create(request: Request, title: str = Form(""), body: str = Form(""), tags: str = Form("")):
+        form = {"title": title, "body": body, "tags": tags}
+        try:
+            memo = Memo(title=title, body=body, tags=parse_tag_input(tags), created_at=clock())
+        except ValueError as e:
+            return render_memo_edit(request, action="/memos", form=form, error=str(e), status=400)
+        with open_db() as conn:
+            MemoRepository(conn).add(memo)
+        return RedirectResponse("/memos", status_code=303)
+
+    @app.get("/memos/{memo_id}/edit")
+    def memo_edit_page(request: Request, memo_id: int):
+        """編集ページ(ポップアップが使えないときの代わり)。GET は何も変えない。"""
+        with open_db() as conn:
+            memo = memo_or_404(conn, memo_id)
+        form = {"title": memo.title, "body": memo.body, "tags": " ".join(sorted(memo.tags))}
+        return render_memo_edit(request, action=f"/memos/{memo_id}/edit", form=form, delete_action=f"/memos/{memo_id}/delete")
+
+    @app.post("/memos/{memo_id}/edit")
+    def memo_edit(request: Request, memo_id: int, title: str = Form(""), body: str = Form(""), tags: str = Form("")):
+        form = {"title": title, "body": body, "tags": tags}
+        with open_db() as conn:
+            memo = memo_or_404(conn, memo_id)
+            try:
+                memo.edit(title=title, body=body, tags=parse_tag_input(tags), now=clock())
+            except ValueError as e:
+                return render_memo_edit(request, action=f"/memos/{memo_id}/edit", form=form,
+                                        delete_action=f"/memos/{memo_id}/delete", error=str(e), status=400)
+            MemoRepository(conn).update(memo)
+        return RedirectResponse("/memos", status_code=303)
+
+    @app.post("/memos/{memo_id}/delete")
+    def memo_delete(memo_id: int):
+        with open_db() as conn:
+            try:
+                MemoRepository(conn).delete(memo_id)
+            except LookupError:
+                raise HTTPException(status_code=404, detail="メモが見つかりません") from None
+        return RedirectResponse("/memos", status_code=303)
 
     # --- ニュース ------------------------------------------------------------------
     @app.get("/news")

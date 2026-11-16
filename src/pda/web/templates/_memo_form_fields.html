@@ -1,0 +1,4 @@
+{# メモの入力欄(新規・編集ページとポップアップで共有)。prefix は欄の id の接頭辞 #}
+<p><label>タイトル <input name="title" id="{{ prefix }}title" value="{{ form.title }}" required></label></p>
+<p><label>本文<br><textarea name="body" id="{{ prefix }}body" rows="10" placeholder="考えたこと・調べたこと">{{ form.body }}</textarea></label></p>
+<p><label>タグ(空白か「,」「、」で区切る)<input name="tags" id="{{ prefix }}tags" value="{{ form.tags }}" placeholder="数学 物理"></label></p>
