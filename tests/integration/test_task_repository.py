@@ -125,3 +125,21 @@ def test_削除すると取り出せなくなる(repo):
 def test_存在しないタスクは削除できない(repo):
     with pytest.raises(LookupError):
         repo.delete(999)
+
+
+# --- 詳細 ------------------------------------------------------------------
+def test_詳細も保存して取り出せる(repo):
+    t = Task(title="牛乳を買う", priority=Priority.LOW, created_at=T0, detail="シチュー用。\n1L を 2 本")
+    repo.add(t)
+
+    assert repo.get(t.id).detail == "シチュー用。\n1L を 2 本"
+
+
+def test_詳細を更新できる(repo):
+    t = Task(title="牛乳を買う", priority=Priority.LOW, created_at=T0)
+    repo.add(t)
+
+    t.detail = "飲む用"
+    repo.update(t)
+
+    assert repo.get(t.id).detail == "飲む用"

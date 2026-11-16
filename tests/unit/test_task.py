@@ -127,3 +127,14 @@ def test_完了済みで作成日時が同じタスクは元の順序を保つ()
     second = Task(title="二番目", priority=Priority.HIGH, created_at=T0, done=True)
 
     assert [t.title for t in completed_by_newest([first, second])] == ["一番目", "二番目"]
+
+
+# --- 詳細 ------------------------------------------------------------------
+def test_詳細は省略すると空():
+    assert Task(title="牛乳を買う", priority=Priority.LOW, created_at=T0).detail == ""
+
+
+def test_詳細を付けて作れる():
+    t = Task(title="牛乳を買う", priority=Priority.LOW, created_at=T0, detail="シチュー用。\n1L を 2 本")
+
+    assert t.detail == "シチュー用。\n1L を 2 本"

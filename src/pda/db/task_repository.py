@@ -5,6 +5,7 @@
   due        date | None        ↔ 'YYYY-MM-DD' | NULL
   done       bool               ↔ 0 / 1
   created_at datetime(秒単位)  ↔ 'YYYY-MM-DDTHH:MM:SS'
+  detail     str                ↔ TEXT(「なし」は ''。0002 で追加)
 """
 
 import sqlite3
@@ -13,7 +14,7 @@ from pda.db._convert import date_from_db, date_to_db, datetime_from_db, datetime
 from pda.domain.task import Priority, Task
 
 # 列名はコード内の定数なので f-string で埋め込んでよい。値は必ず ? プレースホルダで渡す
-_COLUMNS = "id, title, priority, due, done, created_at"
+_COLUMNS = "id, title, priority, due, done, created_at, detail"
 
 
 def _to_row(task: Task) -> tuple:
@@ -23,11 +24,12 @@ def _to_row(task: Task) -> tuple:
         date_to_db(task.due) if task.due else None,
         int(task.done),
         datetime_to_db(task.created_at),
+        task.detail,
     )
 
 
 def _from_row(row: tuple) -> Task:
-    id_, title, priority, due, done, created_at = row
+    id_, title, priority, due, done, created_at, detail = row
     return Task(
         id=id_,
         title=title,
@@ -35,6 +37,7 @@ def _from_row(row: tuple) -> Task:
         due=date_from_db(due) if due else None,
         done=bool(done),
         created_at=datetime_from_db(created_at),
+        detail=detail,
     )
 
 
@@ -47,7 +50,7 @@ class TaskRepository:
         if task.id is not None:
             raise ValueError(f"保存済みのタスクです(id={task.id})")
         cur = self._conn.execute(
-            "INSERT INTO tasks (title, priority, due, done, created_at) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO tasks (title, priority, due, done, created_at, detail) VALUES (?, ?, ?, ?, ?, ?)",
             _to_row(task),
         )
         task.id = cur.lastrowid
@@ -65,7 +68,7 @@ class TaskRepository:
         if task.id is None:
             raise ValueError("保存前のタスクは更新できません")
         cur = self._conn.execute(
-            "UPDATE tasks SET title = ?, priority = ?, due = ?, done = ?, created_at = ? WHERE id = ?",
+            "UPDATE tasks SET title = ?, priority = ?, due = ?, done = ?, created_at = ?, detail = ? WHERE id = ?",
             (*_to_row(task), task.id),
         )
         if cur.rowcount == 0:

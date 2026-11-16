@@ -29,6 +29,7 @@ class Task:
     created_at: datetime
     due: date | None = None
     done: bool = False
+    detail: str = ""  # 任意。目的や補足(例: 何のための買い物か)。「なし」は空文字
     id: int | None = None  # 保存前は None。リポジトリが保存時に振る
 
     def __post_init__(self) -> None:
