@@ -47,8 +47,9 @@ def test_グループごとに物理数学からITの順で登録した順に並
     assert appear_in_order(listing, "物理・数学", "量子", "トポロジー", "IT", "GPU", "AI")
 
 
-def test_どの画面からもキーワードの画面へ行ける(client):
-    assert 'href="/keywords"' in client.get("/tasks").text
+def test_ニュースの画面からキーワードの画面へ行ける(client):
+    # キーワードはタブバーにない(2026-11-16 デザイン反映)。ニュースの画面の上部からリンクする
+    assert 'href="/keywords"' in client.get("/news").text
 
 
 # --- 追加 ------------------------------------------------------------------

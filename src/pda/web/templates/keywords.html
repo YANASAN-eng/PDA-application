@@ -3,7 +3,8 @@
 {% block content %}
 <h1>ニュースのキーワード</h1>
 <p class="meta">タイトルか概要文にどれかの語がある記事を集めます。両方のグループに当たる記事が優先されます。英字は単語単位で、大文字小文字を区別しません。</p>
-<form method="post" action="/keywords" class="keyword-form">
+<p class="page-actions"><a href="/news" class="pill-link">← ニュースへ</a></p>
+<form method="post" action="/keywords" class="keyword-form panel">
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
   <select name="group" id="keyword-group" aria-label="グループ">
     {% for g in groups %}
@@ -12,7 +13,7 @@
   </select>
   <input name="word" id="keyword-word" value="{{ form.word }}" required autocomplete="off"
          placeholder="語を入力(一覧を絞り込みます)" aria-label="語">
-  <button type="submit">追加</button>
+  <button type="submit" class="primary">追加</button>
 </form>
 <p id="keyword-status" class="meta" aria-live="polite"></p>
 <div class="keyword-groups">

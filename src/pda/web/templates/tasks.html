@@ -3,10 +3,10 @@
 
 {% block content %}
 <h1>ToDo</h1>
-<form method="post" action="/tasks">
+<form method="post" action="/tasks" class="panel">
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
   {% with prefix="" %}{% include "_task_form_fields.html" %}{% endwith %}
-  <p><button type="submit">追加</button></p>
+  <p><button type="submit" class="primary">追加</button></p>
 </form>
 <ul class="items">
   {% for t in tasks %}
@@ -22,7 +22,7 @@
   <li>未完了のタスクはありません</li>
   {% endfor %}
 </ul>
-<p><a href="/tasks/done">完了済みの一覧へ</a></p>
+<p class="page-actions" style="margin-top:16px"><a href="/tasks/done" class="pill-link">完了済みの一覧へ</a></p>
 {% endblock %}
 
 {% block scripts %}{% include "_task_edit_dialog.html" %}{% endblock %}

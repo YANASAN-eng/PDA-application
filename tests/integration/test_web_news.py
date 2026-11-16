@@ -75,7 +75,7 @@ def test_記事は元記事へのリンクと配信元と要約と当たった�
 
     assert f'<a href="{a.url}" class="article-link" data-id="{a.id}" target="_blank" rel="noopener noreferrer">量子と AI</a>' in html
     assert "Zenn: quantum" in html and "誤り訂正の新手法。" in html
-    assert appear_in_order(html, '<span class="badge">物理・数学</span>', '<span class="badge">IT</span>')
+    assert appear_in_order(html, '<span class="badge badge-MATH_PHYSICS">物理・数学</span>', '<span class="badge badge-IT">IT</span>')
 
 
 def test_記事がなければその旨を表示する(client):
