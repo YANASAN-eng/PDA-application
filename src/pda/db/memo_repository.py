@@ -18,6 +18,8 @@ class MemoRepository:
 
     def add(self, memo: Memo) -> None:
         """保存して memo.id を振る。"""
+        if memo.id is not None:
+            raise ValueError(f"保存済みのメモです(id={memo.id})")
         cur = self._conn.execute(
             "INSERT INTO memos (title, body, created_at, updated_at) VALUES (?, ?, ?, ?)",
             (memo.title, memo.body, datetime_to_db(memo.created_at), datetime_to_db(memo.updated_at)),
