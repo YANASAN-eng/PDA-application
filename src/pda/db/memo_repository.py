@@ -7,7 +7,8 @@
 """
 
 import sqlite3
-from collections.abc import Iterator
+from collections import defaultdict
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 
 from pda.db._convert import datetime_from_db, datetime_to_db
@@ -17,6 +18,22 @@ from pda.domain.memo import Memo
 def _to_row(memo: Memo) -> tuple:
     """memos の (title, body, created_at, updated_at) の値。"""
     return (memo.title, memo.body, datetime_to_db(memo.created_at), datetime_to_db(memo.updated_at))
+
+
+# 列名はコード内の定数なので f-string で埋め込んでよい。値は必ず ? プレースホルダで渡す
+_COLUMNS = "id, title, body, created_at, updated_at"
+
+
+def _from_row(row: tuple, tags: Iterable[str]) -> Memo:
+    id_, title, body, created_at, updated_at = row
+    return Memo(
+        id=id_,
+        title=title,
+        body=body,
+        tags=tags,
+        created_at=datetime_from_db(created_at),
+        updated_at=datetime_from_db(updated_at),
+    )
 
 
 class MemoRepository:
@@ -37,20 +54,19 @@ class MemoRepository:
         memo.id = new_id  # COMMIT できてから振る(失敗したら memo は変わらない)
 
     def get(self, memo_id: int) -> Memo | None:
-        row = self._conn.execute(
-            "SELECT title, body, created_at, updated_at FROM memos WHERE id = ?", (memo_id,)
-        ).fetchone()
-        if row is None:
-            return None
-        title, body, created_at, updated_at = row
-        return Memo(
-            id=memo_id,
-            title=title,
-            body=body,
-            tags=self._tags_of(memo_id),
-            created_at=datetime_from_db(created_at),
-            updated_at=datetime_from_db(updated_at),
-        )
+        row = self._conn.execute(f"SELECT {_COLUMNS} FROM memos WHERE id = ?", (memo_id,)).fetchone()
+        return _from_row(row, self._tags_of(memo_id)) if row else None
+
+    def list_all(self) -> list[Memo]:
+        """保存した順(id の昇順)。表示の並び順はドメインの memos_by_updated で決める。"""
+        rows = self._conn.execute(f"SELECT {_COLUMNS} FROM memos ORDER BY id").fetchall()
+        # メモごとに問い合わせると N+1 回になるので、結び付きは 1 回でまとめて取る
+        tags: defaultdict[int, list[str]] = defaultdict(list)
+        for memo_id, name in self._conn.execute(
+            "SELECT mt.memo_id, t.name FROM memo_tags mt JOIN tags t ON t.id = mt.tag_id"
+        ):
+            tags[memo_id].append(name)
+        return [_from_row(r, tags[r[0]]) for r in rows]
 
     def update(self, memo: Memo) -> None:
         """内容とタグを書き換える。タグは結び付けを付け直す(外したタグも tags には残る)。"""
@@ -83,7 +99,7 @@ class MemoRepository:
             raise
         self._conn.execute("COMMIT")
 
-    def _link_tags(self, memo_id: int, tags) -> None:
+    def _link_tags(self, memo_id: int, tags: Iterable[str]) -> None:
         for name in tags:
             # 既にある名前なら何もしない(tags.name は UNIQUE)
             self._conn.execute("INSERT INTO tags (name) VALUES (?) ON CONFLICT (name) DO NOTHING", (name,))

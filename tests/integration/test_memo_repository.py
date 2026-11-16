@@ -5,7 +5,7 @@ import pytest
 
 from pda.db.memo_repository import MemoRepository
 from pda.db.migrate import connect, migrate
-from pda.domain.memo import Memo
+from pda.domain.memo import Memo, memos_by_updated
 
 T0 = datetime(2026, 11, 16, 9, 0)
 T1 = datetime(2026, 11, 16, 10, 0)
@@ -155,3 +155,23 @@ def test_削除するとメモと結び付きが消えタグは残る(repo, conn
 def test_存在しないメモは削除できない(repo):
     with pytest.raises(LookupError):
         repo.delete(999)
+
+
+# --- 一覧 ------------------------------------------------------------------
+def test_一覧は保存した順にタグ付きで全件返る(repo):
+    a, b, c = memo(title="A", tags=["物理"]), memo(title="B"), memo(title="C", tags=["物理", "数学"])
+    for m in (a, b, c):
+        repo.add(m)
+
+    assert repo.list_all() == [a, b, c]
+
+
+def test_一覧をドメインで並べると更新日時が同じメモは保存した順になる(repo):
+    for title in ("一番目", "二番目"):
+        repo.add(memo(title=title))
+
+    assert [m.title for m in memos_by_updated(repo.list_all())] == ["一番目", "二番目"]
+
+
+def test_空のときの一覧は空(repo):
+    assert repo.list_all() == []
