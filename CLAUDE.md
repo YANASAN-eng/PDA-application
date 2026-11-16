@@ -100,6 +100,7 @@ pytest                                # 全テスト
 pytest tests/unit -q                  # 単体テストだけ
 pytest -k タスク                      # 名前で絞る
 uvicorn pda.web.app:create_app_from_env --factory --reload   # 開発サーバー(http://127.0.0.1:8000)。DB は data/pda.db(環境変数 PDA_DB で変更可)
+python -m pda.news_job                # ニュースの日次処理(取得 → 絞り込み → 保存 → モック要約)。設定は src/pda/config.py
 ```
 
 ## Claude API(ニュース要約)
