@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}ToDo - PDA{% endblock %}
+{% block content %}
+<h1>ToDo</h1>
+<ul class="items">
+  {% for t in tasks %}
+  <li>
+    <span class="title{% if t.is_overdue(today) %} overdue{% endif %}">{{ t.display_title(today) }}</span>
+    <span class="meta">優先度 {{ t.priority.label }}{% if t.due %} / 期限 {{ t.due.isoformat() }}{% endif %}</span>
+  </li>
+  {% else %}
+  <li>未完了のタスクはありません</li>
+  {% endfor %}
+</ul>
+{% endblock %}

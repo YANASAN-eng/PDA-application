@@ -27,6 +27,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "pda.db" = ["migrations/*.sql"]
+"pda.web" = ["templates/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
