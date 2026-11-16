@@ -184,3 +184,38 @@ def test_存在しないタスクは未完了に戻せない(client):
 def test_一覧と完了済みページは互いにリンクしている(client):
     assert 'href="/tasks/done"' in client.get("/tasks").text
     assert 'href="/tasks"' in client.get("/tasks/done").text
+
+
+# --- 削除(確認ページを経由) ---------------------------------------------------
+def test_削除の確認ページにはタイトルと削除ボタンがあり開いただけでは消えない(client, tasks):
+    t = task("論文を読む")
+    tasks.add(t)
+
+    html = client.get(f"/tasks/{t.id}/delete").text
+
+    assert "論文を読む" in html
+    assert f'method="post" action="/tasks/{t.id}/delete"' in html
+    assert tasks.get(t.id) is not None
+
+
+def test_確認ページで削除すると消えて一覧へ戻る(client, tasks):
+    t = task("論文を読む")
+    tasks.add(t)
+
+    res = client.post(f"/tasks/{t.id}/delete", follow_redirects=False)
+
+    assert res.status_code == 303 and res.headers["location"] == "/tasks"
+    assert tasks.get(t.id) is None
+
+
+@pytest.mark.parametrize("done, page", [(False, "/tasks"), (True, "/tasks/done")], ids=["未完了の一覧", "完了済みページ"])
+def test_一覧から削除の確認ページへ行ける(client, tasks, done, page):
+    t = task("論文を読む", done=done)
+    tasks.add(t)
+
+    assert f'href="/tasks/{t.id}/delete"' in client.get(page).text
+
+
+@pytest.mark.parametrize("method", ["get", "post"])
+def test_存在しないタスクは削除できない(client, method):
+    assert getattr(client, method)("/tasks/999/delete").status_code == 404

@@ -107,6 +107,24 @@ def create_app(db_path: Path, *, clock: Callable[[], datetime] = _system_clock) 
         set_done(task_id, False)
         return RedirectResponse("/tasks/done", status_code=303)
 
+    @app.get("/tasks/{task_id}/delete")
+    def task_delete_confirm(request: Request, task_id: int):
+        """確認ページ。GET は何も変えない(削除は下の POST でだけ起きる)。"""
+        with open_db() as conn:
+            task = TaskRepository(conn).get(task_id)
+        if task is None:
+            raise HTTPException(status_code=404, detail="タスクが見つかりません")
+        return TEMPLATES.TemplateResponse(request, "task_delete.html", {"task": task})
+
+    @app.post("/tasks/{task_id}/delete")
+    def task_delete(task_id: int):
+        with open_db() as conn:
+            try:
+                TaskRepository(conn).delete(task_id)
+            except LookupError:
+                raise HTTPException(status_code=404, detail="タスクが見つかりません") from None
+        return RedirectResponse("/tasks", status_code=303)
+
     return app
 
 
