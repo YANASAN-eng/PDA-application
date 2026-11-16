@@ -161,3 +161,34 @@ def test_ある日に要約した件数を数える(repo):
 
     assert repo.count_summarized_on(date(2026, 11, 16)) == 2
     assert repo.count_summarized_on(date(2026, 11, 17)) == 0
+
+
+# --- 一覧と既読 --------------------------------------------------------------
+def test_要約済みの記事だけを保存した順に返す(repo):
+    a, b, c = article(1), article(2), article(3)
+    repo.add_new([a, b, c])
+    for x in (c, a):
+        x.set_summary("要約", now=NOW)
+    repo.save_summaries([c, a])
+
+    assert repo.list_summarized() == [a, c]
+
+
+def test_既読にすると既読日時が保存され未読に戻すと消える(repo):
+    a = article(1)
+    repo.add_new([a])
+    a.set_summary("要約", now=NOW)
+    repo.save_summaries([a])
+    read_time = datetime(2026, 11, 16, 21, 0)
+
+    repo.mark_read(a.id, now=read_time)
+    assert repo.list_summarized()[0].read_at == read_time
+
+    repo.mark_unread(a.id)
+    assert repo.list_summarized()[0].read_at is None
+
+
+@pytest.mark.parametrize("op", ["read", "unread"])
+def test_存在しない記事は既読にも未読にもできない(repo, op):
+    with pytest.raises(LookupError):
+        repo.mark_read(999, now=NOW) if op == "read" else repo.mark_unread(999)

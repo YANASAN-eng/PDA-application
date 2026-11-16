@@ -17,6 +17,12 @@
     .error { color: #b00020; }
     form.inline { display: inline; }
     input, select, button { font-size: 1rem; }
+    /* ニュース: 既読は薄く表示して残す */
+    .article .article-link { font-weight: 600; }
+    .article.read { opacity: .55; }
+    .badge { display: inline-block; font-size: .75rem; padding: 0 .5rem; border-radius: 999px; background: #e8eefc; color: #2f4a8a; margin-right: .25rem; }
+    .summary { flex-basis: 100%; margin: .25rem 0 0; }
+    .pager { display: flex; gap: 1rem; align-items: center; justify-content: center; margin: 1.5rem 0; }
     /* 編集ポップアップ */
     dialog { width: min(32rem, calc(100vw - 2rem)); border: 1px solid #ccc; border-radius: 8px; padding: 1rem 1.25rem; }
     dialog::backdrop { background: rgba(0, 0, 0, .35); }
@@ -36,7 +42,7 @@
   </style>
 </head>
 <body>
-  <nav><a href="/tasks">ToDo</a><a href="/keywords">キーワード</a></nav>
+  <nav><a href="/tasks">ToDo</a><a href="/news">ニュース</a><a href="/keywords">キーワード</a></nav>
   {% block content %}{% endblock %}
   <script>
     // data-confirm を持つフォームは、送信の前にブラウザ標準の確認を出す(キャンセルなら送らない)。

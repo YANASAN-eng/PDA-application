@@ -9,8 +9,9 @@
 """
 
 import re
+from collections import defaultdict
 from collections.abc import Iterable, Mapping
-from datetime import datetime
+from datetime import date, datetime
 
 from pda.domain.article import Article
 
@@ -30,17 +31,32 @@ def matched_groups(article: Article, groups: KeywordGroups) -> set[str]:
     return {name for name, keywords in groups.items() if any(_matches(k, text) for k in keywords)}
 
 
-def rank(articles: Iterable[Article], groups: KeywordGroups) -> list[Article]:
-    """どれかのグループに当たる記事だけを、優先順位の高い順に返す。"""
-    scored = [(a, len(matched_groups(a, groups))) for a in articles]
+def sort_by_priority(articles: Iterable[Article], groups: KeywordGroups) -> list[Article]:
+    """優先順位の高い順に並べる(どのグループにも当たらない記事も落とさず、最後に回す)。"""
 
-    def key(item: tuple[Article, int]):
-        a, score = item
+    def key(a: Article):
         has_date = a.published_at is not None
-        return (score, has_date, a.published_at or datetime.min)
+        return (len(matched_groups(a, groups)), has_date, a.published_at or datetime.min)
 
     # reverse=True でも sorted は安定なので、キーが同じなら元の順序を保つ
-    return [a for a, score in sorted(scored, key=key, reverse=True) if score > 0]
+    return sorted(articles, key=key, reverse=True)
+
+
+def rank(articles: Iterable[Article], groups: KeywordGroups) -> list[Article]:
+    """どれかのグループに当たる記事だけを、優先順位の高い順に返す。"""
+    return [a for a in sort_by_priority(articles, groups) if matched_groups(a, groups)]
+
+
+def news_by_day(articles: Iterable[Article], groups: KeywordGroups) -> list[tuple[date, list[Article]]]:
+    """一覧の並び: 要約済みの記事だけを、要約した日ごと(新しい日が先)に、日の中は優先順位で。
+
+    一覧では記事を落とさない(キーワードを消して当たらなくなった記事は、その日の最後に回る)。
+    """
+    by_day: dict[date, list[Article]] = defaultdict(list)
+    for a in articles:
+        if a.summarized_at is not None:
+            by_day[a.summarized_at.date()].append(a)
+    return [(day, sort_by_priority(by_day[day], groups)) for day in sorted(by_day, reverse=True)]
 
 
 def pick_for_summary(articles: Iterable[Article], groups: KeywordGroups, *, limit: int) -> list[Article]:

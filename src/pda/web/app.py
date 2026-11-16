@@ -18,12 +18,16 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from pda import config
+from pda.db.article_repository import ArticleRepository
 from pda.db.keyword_repository import KeywordRepository
 from pda.db.migrate import connect, migrate_file
 from pda.db.task_repository import TaskRepository
-from pda.domain.keyword import Keyword, KeywordGroup
+from pda.domain.keyword import Keyword, KeywordGroup, as_groups
+from pda.news.filter import matched_groups, news_by_day
 from pda.domain.task import Priority, Task, completed_by_newest, incomplete_by_priority
+from pda.web.pagination import paginate
 
+NEWS_PER_PAGE = 30  # 1 日に要約する件数の上限と同じ(だいたい 1 ページ = 1 日)
 TEMPLATES = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 
@@ -219,6 +223,45 @@ def create_app(db_path: Path, *, clock: Callable[[], datetime] = _system_clock) 
             except LookupError:
                 raise HTTPException(status_code=404, detail="キーワードが見つかりません") from None
         return RedirectResponse("/keywords", status_code=303)
+
+    # --- ニュース ------------------------------------------------------------------
+    @app.get("/news")
+    def news_list(request: Request, page: int = 1):
+        with open_db() as conn:
+            groups = as_groups(KeywordRepository(conn).list_all())
+            days = news_by_day(ArticleRepository(conn).list_summarized(), groups)
+        flat = [(day, a) for day, items in days for a in items]
+        try:
+            current = paginate(flat, page=page, per_page=NEWS_PER_PAGE)
+        except ValueError:
+            raise HTTPException(status_code=404, detail="ページが見つかりません") from None
+        # ページの中で日ごとにまとめ直す(ページが変わっても日の見出しを出す)
+        sections: list[tuple] = []
+        for day, a in current.items:
+            if not sections or sections[-1][0] != day:
+                sections.append((day, []))
+            hit = matched_groups(a, groups)
+            sections[-1][1].append((a, [g.label for g in KeywordGroup if g.label in hit]))
+        return TEMPLATES.TemplateResponse(request, "news.html", {"sections": sections, "pager": current})
+
+    def set_read(article_id: int, read: bool, page: str):
+        with open_db() as conn:
+            repo = ArticleRepository(conn)
+            try:
+                repo.mark_read(article_id, now=clock()) if read else repo.mark_unread(article_id)
+            except LookupError:
+                raise HTTPException(status_code=404, detail="記事が見つかりません") from None
+        # 戻り先はページ番号だけを受け取り、URL は組み立てる(任意の URL へ飛ばされないように)
+        back = int(page) if page.isdigit() and int(page) >= 1 else 1
+        return RedirectResponse(f"/news?page={back}", status_code=303)
+
+    @app.post("/news/{article_id}/read")
+    def news_read(article_id: int, page: str = Form("1")):
+        return set_read(article_id, True, page)
+
+    @app.post("/news/{article_id}/unread")
+    def news_unread(article_id: int, page: str = Form("1")):
+        return set_read(article_id, False, page)
 
     return app
 

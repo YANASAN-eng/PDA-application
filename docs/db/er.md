@@ -53,6 +53,7 @@ erDiagram
         TEXT fetched_at "NOT NULL"
         TEXT summary "NULL 可: 要約前は NULL"
         TEXT summarized_at "NULL 可"
+        TEXT read_at "NULL = 未読 (0005)"
     }
     keywords {
         INTEGER id PK

@@ -3,12 +3,12 @@
 作業を中断・再開するときの引き継ぎ用。**再開したらまずここを読む。** 区切りごとに更新する。
 
 ## 最終更新: 2026-11-16
-- `main` は全テスト緑(363 件)。作業中のブランチなし
+- `main` は全テスト緑(445 件)。作業中のブランチなし
 - 再開時の確認コマンド:
   ```powershell
   cd C:\development\pda
   .\.venv\Scripts\Activate.ps1
-  pytest -q            # 363 passed のはず
+  pytest -q            # 445 passed のはず
   git log --oneline --graph -10
   ```
 
@@ -18,11 +18,11 @@
 | ドメイン(`src/pda/domain/`) | ✅ `task.py` | ✅ `event.py` | ✅ `memo.py` | ✅ `article.py`(記事・フィード) |
 | スキーマ(`src/pda/db/migrations/0001_initial.sql`) | ✅ | ✅ | ✅(`memos`・`tags`・`memo_tags`) | ✅ `0003`(`feeds`・`articles`) |
 | リポジトリ(`src/pda/db/`) | ✅ `task_repository.py` | ✅ `event_repository.py` | ✅ `memo_repository.py` | ✅ `article_repository.py` |
-| Web 画面(`src/pda/web/`) | ✅ 一覧・追加・完了・完了済み・削除(編集は未) | ⬜ | ⬜ | ⬜ |
+| Web 画面(`src/pda/web/`) | ✅ 一覧・追加・編集(ポップアップ)・完了・完了済み・削除 | ⬜ | ⬜ | ✅ `/news`(日ごと・優先順位・30 件ごと・既読)+ `/keywords` |
 
 基盤:
 - マイグレーションの仕組み `src/pda/db/migrate.py`(1 ファイル = 1 トランザクション、適用前バックアップ、番号検査)
-- マイグレーションの凍結検査 `tests/integration/test_migration_freeze.py`(`0001`〜`0004` 登録済み)
+- マイグレーションの凍結検査 `tests/integration/test_migration_freeze.py`(`0001`〜`0005` 登録済み)
 - ニュースの処理(`src/pda/news/`): 絞り込みと優先順位 `filter.py` / 要約器 `summarizer.py`(モック)/ RSS・Atom の解析と取得 `fetcher.py` / 日次処理 `daily.py`
 - ニュースの入口 `python -m pda.news_job`、設定 `src/pda/config.py`(フィード: Qiita・Zenn の数学・物理系タグ、arXiv quant-ph / cs.IT / cs.LG)
 - キーワードは DB で管理し、画面 `/keywords` で追加・削除(`0004`)
@@ -37,13 +37,16 @@
   - news は db を知らない。保存先は `pda.news.daily.ArticleStore` Protocol。組み立ては `pda/news_job.py`
 - フィードを設定(Qiita・Zenn・arXiv。Mathlog は RSS がないので外す)
 - キーワードを DB 管理にして編集画面 `/keywords` を追加(`feature/keywords-db`)。大文字小文字だけの違いは同じ語として重複を断る
+- テストのガードレール: 依存の向き(`tests/unit/test_architecture.py`)、外部に出ない(`tests/conftest.py`)
+- ToDo の編集(ポップアップ。JavaScript なしでは編集ページ)
+- ニュースの画面 `/news`: 要約済みだけ・要約した日ごと・日の中は優先順位・30 件ごと・既読(元記事を開くと自動、ボタンでも)。`0005`(`articles.read_at`)
+- ⚠ 画面の JavaScript(キーワードの絞り込み・ToDo の編集ポップアップ・自動既読)はブラウザでの確認待ち
 
 ## その後の候補(順番は未決定)
 - 平日に `python -m pda.news_job` を本物で動かし、arXiv の件数・概要文の形を確かめる(土日は arXiv が空)
 - フィードも DB 管理にするか(今の正本は `config.FEEDS`。`feeds` テーブルは写し)
 - ニュースの Web 画面(要約済みの記事を優先順位順に)
 - 日次処理のスケジューラ(Windows タスクスケジューラ等)
-- ToDo の編集(タイトル・優先度・期限・詳細の変更)
 - 予定 → メモの Web 画面、最後に「今日」のまとめ画面(この順は決定済み)
 - タグの候補一覧を返す処理(タグを残すと決めた理由が「候補に出すため」なので、Web 画面で必要になったら作る。並び順は要相談)
 - ニュースのドメイン(記事の形、IT × 物理・数学の絞り込み、モック要約)→ `0002` でニュースのテーブル追加
