@@ -2,6 +2,21 @@
 {% block title %}ToDo - PDA{% endblock %}
 {% block content %}
 <h1>ToDo</h1>
+<form method="post" action="/tasks">
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <p><label>タイトル <input name="title" value="{{ form.title }}" required></label></p>
+  <p>
+    <label>優先度
+      <select name="priority">
+        {% for p in priorities %}
+        <option value="{{ p.name }}"{% if p.name == form.priority %} selected{% endif %}>{{ p.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>期限 <input type="date" name="due" value="{{ form.due }}"></label>
+  </p>
+  <p><button type="submit">追加</button></p>
+</form>
 <ul class="items">
   {% for t in tasks %}
   <li>

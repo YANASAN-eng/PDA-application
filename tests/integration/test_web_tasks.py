@@ -66,3 +66,53 @@ def test_期限を過ぎたタスクには超過の印が付き期限当日の�
 
     assert "【超過】-昨日まで" in html
     assert "【超過】-今日まで" not in html and "今日まで" in html
+
+
+# --- 追加 ------------------------------------------------------------------
+def test_追加すると保存されて一覧へ戻る(client, tasks):
+    res = client.post("/tasks", data={"title": "論文を読む", "priority": "HIGH", "due": "2026-11-20"}, follow_redirects=False)
+
+    assert res.status_code == 303 and res.headers["location"] == "/tasks"
+    [saved] = tasks.list_all()
+    assert (saved.title, saved.priority, saved.due, saved.done, saved.created_at) == (
+        "論文を読む", Priority.HIGH, date(2026, 11, 20), False, NOW,
+    )
+
+
+def test_期限は空欄でもよい(client, tasks):
+    client.post("/tasks", data={"title": "論文を読む", "priority": "LOW", "due": ""})
+
+    assert tasks.list_all()[0].due is None
+
+
+def test_タイトルが空なら保存せずエラーを表示し入力を残す(client, tasks):
+    res = client.post("/tasks", data={"title": "  ", "priority": "LOW", "due": "2026-11-20"})
+
+    assert res.status_code == 400
+    assert "タイトルは空にできません" in res.text
+    assert 'value="2026-11-20"' in res.text
+    assert tasks.list_all() == []
+
+
+@pytest.mark.parametrize(
+    "form",
+    [
+        {"title": "論文を読む", "priority": "URGENT", "due": ""},
+        {"title": "論文を読む", "priority": "LOW", "due": "2026-02-30"},
+    ],
+    ids=["存在しない優先度", "存在しない日付"],
+)
+def test_不正な値なら保存しない(client, tasks, form):
+    res = client.post("/tasks", data=form)
+
+    assert res.status_code == 400
+    assert tasks.list_all() == []
+
+
+def test_タイトルのHTMLはタグとして解釈されず文字のまま表示される(client):
+    client.post("/tasks", data={"title": "<script>alert(1)</script>", "priority": "LOW", "due": ""})
+
+    html = client.get("/tasks").text
+
+    assert "<script>alert(1)</script>" not in html
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
