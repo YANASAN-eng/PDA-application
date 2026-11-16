@@ -7,6 +7,7 @@
 
 import sqlite3
 from collections.abc import Iterable, Sequence
+from datetime import date, datetime, time, timedelta
 
 from pda.db._convert import datetime_from_db, datetime_to_db
 from pda.db._transaction import transaction
@@ -104,6 +105,18 @@ class ArticleRepository:
                 cur = self._conn.execute("UPDATE articles SET summary = ?, summarized_at = ? WHERE id = ?", row)
                 if cur.rowcount == 0:
                     raise LookupError(f"記事が見つかりません(id={row[2]})")
+
+    def count_summarized_on(self, day: date) -> int:
+        """day に要約した記事の件数(1 日の上限の計算用)。
+
+        日時は固定形式の TEXT なので、文字列の大小 = 時刻の前後。[day 0:00, 翌日 0:00) の範囲で数える。
+        """
+        start = datetime.combine(day, time.min)
+        row = self._conn.execute(
+            "SELECT count(*) FROM articles WHERE summarized_at >= ? AND summarized_at < ?",
+            (datetime_to_db(start), datetime_to_db(start + timedelta(days=1))),
+        ).fetchone()
+        return row[0]
 
     def _feed_id(self, feed: Feed) -> int:
         row = self._conn.execute("SELECT id FROM feeds WHERE url = ?", (feed.url,)).fetchone()

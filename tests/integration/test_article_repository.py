@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime
+from datetime import date, datetime
 
 import pytest
 
@@ -149,3 +149,15 @@ def test_要約のない記事は要約の保存に渡せない(repo):
 
     with pytest.raises(ValueError):
         repo.save_summaries([a])
+
+
+def test_ある日に要約した件数を数える(repo):
+    a, b, c = article(1), article(2), article(3)
+    repo.add_new([a, b, c])
+    a.set_summary("要約", now=datetime(2026, 11, 15, 23, 59, 59))
+    b.set_summary("要約", now=datetime(2026, 11, 16, 0, 0))
+    c.set_summary("要約", now=datetime(2026, 11, 16, 23, 59, 59))
+    repo.save_summaries([a, b, c])
+
+    assert repo.count_summarized_on(date(2026, 11, 16)) == 2
+    assert repo.count_summarized_on(date(2026, 11, 17)) == 0
