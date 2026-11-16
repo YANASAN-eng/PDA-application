@@ -2,7 +2,7 @@
 {% block title %}完了済み - PDA{% endblock %}
 {% block content %}
 <h1>完了済みの ToDo</h1>
-<p><a href="/tasks">未完了の一覧へ</a></p>
+<p class="page-actions"><a href="/tasks" class="pill-link">未完了の一覧へ</a></p>
 <ul class="items">
   {% for t in tasks %}
   <li>

@@ -2,13 +2,14 @@
 {% block title %}ニュース - PDA{% endblock %}
 {% block content %}
 <h1>ニュース</h1>
+<p class="page-actions"><a href="/keywords" class="pill-link">キーワードを編集</a></p>
 {% for day, items in sections %}
 <h2>{{ day.isoformat() }}</h2>
 <ul class="items">
   {% for a, labels in items %}
   <li class="article{% if a.is_read %} read{% endif %}" data-id="{{ a.id }}">
     <a href="{{ a.url }}" class="article-link" data-id="{{ a.id }}" target="_blank" rel="noopener noreferrer">{{ a.title }}</a>
-    <span class="meta">{% for label in labels %}<span class="badge">{{ label }}</span>{% endfor %}{{ a.feed.name }}{% if a.published_at %} / {{ a.published_at.strftime("%Y-%m-%d %H:%M") }}{% endif %}</span>
+    <span class="meta">{% for g in labels %}<span class="badge badge-{{ g.name }}">{{ g.label }}</span>{% endfor %}{{ a.feed.name }}{% if a.published_at %} / {{ a.published_at.strftime("%Y-%m-%d %H:%M") }}{% endif %}</span>
     <p class="summary">{{ a.summary or "(概要なし)" }}</p>
     {% if a.is_read %}
     <form class="inline" method="post" action="/news/{{ a.id }}/unread"><input type="hidden" name="page" value="{{ pager.page }}"><button type="submit">未読に戻す</button></form>

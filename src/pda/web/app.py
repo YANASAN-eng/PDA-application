@@ -241,7 +241,7 @@ def create_app(db_path: Path, *, clock: Callable[[], datetime] = _system_clock) 
             if not sections or sections[-1][0] != day:
                 sections.append((day, []))
             hit = matched_groups(a, groups)
-            sections[-1][1].append((a, [g.label for g in KeywordGroup if g.label in hit]))
+            sections[-1][1].append((a, [g for g in KeywordGroup if g.label in hit]))
         return TEMPLATES.TemplateResponse(request, "news.html", {"sections": sections, "pager": current})
 
     def set_read(article_id: int, read: bool, page: str):
