@@ -16,7 +16,7 @@ from pda.domain.article import Article, Feed
 # 列名はコード内の定数なので f-string で埋め込んでよい。値は必ず ? プレースホルダで渡す
 _SELECT = (
     "SELECT a.id, f.name, f.url, a.url, a.title, a.description, a.published_at, a.fetched_at,"
-    " a.summary, a.summarized_at FROM articles a JOIN feeds f ON f.id = a.feed_id"
+    " a.summary, a.summarized_at, a.read_at FROM articles a JOIN feeds f ON f.id = a.feed_id"
 )
 
 
@@ -25,7 +25,7 @@ def _optional_dt(text: str | None):
 
 
 def _from_row(row: tuple) -> Article:
-    id_, feed_name, feed_url, url, title, description, published_at, fetched_at, summary, summarized_at = row
+    id_, feed_name, feed_url, url, title, description, published_at, fetched_at, summary, summarized_at, read_at = row
     return Article(
         id=id_,
         feed=Feed(name=feed_name, url=feed_url),
@@ -36,6 +36,7 @@ def _from_row(row: tuple) -> Article:
         fetched_at=datetime_from_db(fetched_at),
         summary=summary,
         summarized_at=_optional_dt(summarized_at),
+        read_at=_optional_dt(read_at),
     )
 
 
@@ -90,6 +91,21 @@ class ArticleRepository:
     def list_unsummarized(self) -> list[Article]:
         """未要約の記事を保存した順に。"""
         return [_from_row(r) for r in self._conn.execute(f"{_SELECT} WHERE a.summary IS NULL ORDER BY a.id")]
+
+    def list_summarized(self) -> list[Article]:
+        """要約済みの記事を保存した順に(一覧の並びはドメインの news_by_day が決める)。"""
+        return [_from_row(r) for r in self._conn.execute(f"{_SELECT} WHERE a.summary IS NOT NULL ORDER BY a.id")]
+
+    def mark_read(self, article_id: int, *, now: datetime) -> None:
+        self._set_read_at(article_id, datetime_to_db(now))
+
+    def mark_unread(self, article_id: int) -> None:
+        self._set_read_at(article_id, None)
+
+    def _set_read_at(self, article_id: int, value: str | None) -> None:
+        cur = self._conn.execute("UPDATE articles SET read_at = ? WHERE id = ?", (value, article_id))
+        if cur.rowcount == 0:
+            raise LookupError(f"記事が見つかりません(id={article_id})")
 
     def save_summaries(self, articles: Iterable[Article]) -> None:
         """要約文と要約日時を書き込む(1 トランザクション)。"""
