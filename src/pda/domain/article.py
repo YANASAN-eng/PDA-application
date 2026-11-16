@@ -45,6 +45,7 @@ class Article:
     published_at: datetime | None = None  # フィードに無ければ None
     summary: str | None = None  # 要約前は None
     summarized_at: datetime | None = None  # summary と必ず同時に入る
+    read_at: datetime | None = None  # 既読にした日時。None は未読
     id: int | None = None  # 保存前は None。リポジトリが保存時に振る
 
     def __post_init__(self) -> None:
@@ -59,3 +60,13 @@ class Article:
 
     def set_summary(self, summary: str, *, now: datetime) -> None:
         self.summary, self.summarized_at = summary, now
+
+    @property
+    def is_read(self) -> bool:
+        return self.read_at is not None
+
+    def mark_read(self, *, now: datetime) -> None:
+        self.read_at = now
+
+    def mark_unread(self) -> None:
+        self.read_at = None

@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import date, datetime
 
 import pytest
 
 from pda.domain.article import Article, Feed
-from pda.news.filter import matched_groups, pick_for_summary, rank
+from pda.news.filter import matched_groups, news_by_day, pick_for_summary, rank
 
 FEED = Feed(name="Example", url="https://example.com/feed.xml")
 FETCHED = datetime(2026, 11, 16, 6, 0)
@@ -103,3 +103,39 @@ def test_上限が0なら何も選ばない():
 def test_上限が負ならエラー():
     with pytest.raises(ValueError):
         pick_for_summary([article("量子の話")], GROUPS, limit=-1)
+
+
+# --- 一覧の並び(要約した日ごと → 優先順位) --------------------------------------
+def summarized(title, day, hour=6, published_at=None):
+    a = article(title, published_at=published_at)
+    a.set_summary("要約", now=at(day, hour))
+    return a
+
+
+def test_一覧は要約済みの記事だけを要約した日ごとに新しい日から並べる():
+    old = summarized("量子A", day=15)
+    new = summarized("量子B", day=16)
+    not_yet = article("量子C")
+
+    assert news_by_day([old, not_yet, new], GROUPS) == [
+        (date(2026, 11, 16), [new]),
+        (date(2026, 11, 15), [old]),
+    ]
+
+
+def test_同じ日の中は優先順位で並べる():
+    one = summarized("量子の話", day=16, published_at=at(16, 5))
+    both = summarized("量子と機械学習", day=16, published_at=at(15))
+
+    assert news_by_day([one, both], GROUPS) == [(date(2026, 11, 16), [both, one])]
+
+
+def test_キーワードに当たらなくなった要約済みの記事も落とさずその日の最後に回す():
+    gone = summarized("今日の天気", day=16, published_at=at(16, 5))
+    hit = summarized("量子の話", day=16, published_at=at(15))
+
+    assert news_by_day([gone, hit], GROUPS) == [(date(2026, 11, 16), [hit, gone])]
+
+
+def test_要約済みの記事がなければ空():
+    assert news_by_day([article("量子A")], GROUPS) == []

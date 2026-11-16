@@ -70,3 +70,21 @@ def test_要約を付けると要約文と要約日時が入る():
 def test_要約文と要約日時は片方だけでは持てない():
     with pytest.raises(ValueError):
         Article(feed=FEED, url="https://example.com/a", title="量子計算", fetched_at=FETCHED, summary="要約")
+
+
+# --- 既読 ------------------------------------------------------------------
+def test_作った時点では未読():
+    a = article()
+
+    assert (a.read_at, a.is_read) == (None, False)
+
+
+def test_既読にすると既読日時が入り未読に戻すと消える():
+    a = article()
+    now = datetime(2026, 11, 16, 21, 0)
+
+    a.mark_read(now=now)
+    assert (a.read_at, a.is_read) == (now, True)
+
+    a.mark_unread()
+    assert (a.read_at, a.is_read) == (None, False)
