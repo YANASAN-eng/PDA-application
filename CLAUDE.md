@@ -99,7 +99,7 @@ pip install -e ".[dev]"               # 依存のインストール(初回・依
 pytest                                # 全テスト
 pytest tests/unit -q                  # 単体テストだけ
 pytest -k タスク                      # 名前で絞る
-uvicorn pda.web.app:app --reload      # 開発サーバー(http://127.0.0.1:8000)※Web 実装後
+uvicorn pda.web.app:create_app_from_env --factory --reload   # 開発サーバー(http://127.0.0.1:8000)。DB は data/pda.db(環境変数 PDA_DB で変更可)
 ```
 
 ## Claude API(ニュース要約)

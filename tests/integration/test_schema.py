@@ -1,10 +1,11 @@
 """本物のスキーマ(migrations/)の制約のテスト。"""
 
+import shutil
 import sqlite3
 
 import pytest
 
-from pda.db.migrate import connect, migrate
+from pda.db.migrate import MIGRATIONS_DIR, connect, current_version, migrate
 
 Bad = sqlite3.IntegrityError
 
@@ -50,6 +51,33 @@ def test_PDAのテーブルがすべて作られる(db):
 
 
 # --- tasks -----------------------------------------------------------------
+def test_タスクの詳細は省略すると空文字になる(db):
+    add_task(db)
+
+    assert db.execute("SELECT detail FROM tasks").fetchone() == ("",)
+
+
+def test_タスクの詳細にNULLは保存できない(db):
+    with pytest.raises(Bad):
+        db.execute(
+            "INSERT INTO tasks (title, priority, created_at, detail) VALUES ('レポート', 'HIGH', '2026-11-15T09:00:00', NULL)"
+        )
+
+
+def test_版1のタスクは版2に上げても残り詳細は空文字になる(tmp_path):
+    v1_dir = tmp_path / "v1"
+    v1_dir.mkdir()
+    shutil.copy(MIGRATIONS_DIR / "0001_initial.sql", v1_dir)
+    conn = connect(":memory:")
+    migrate(conn, v1_dir)
+    add_task(conn, title="牛乳を買う")
+
+    migrate(conn)
+
+    assert current_version(conn) >= 2
+    assert conn.execute("SELECT title, detail FROM tasks").fetchall() == [("牛乳を買う", "")]
+    conn.close()
+
 def test_正しいタスクは保存できる(db):
     add_task(db, due="2026-11-20")
 

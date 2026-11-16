@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}完了済み - PDA{% endblock %}
+{% block content %}
+<h1>完了済みの ToDo</h1>
+<p><a href="/tasks">未完了の一覧へ</a></p>
+<ul class="items">
+  {% for t in tasks %}
+  <li>
+    <span class="title">{{ t.title }}</span>
+    <span class="meta">優先度 {{ t.priority.label }}{% if t.due %} / 期限 {{ t.due.isoformat() }}{% endif %}</span>
+    {% if t.detail %}<span class="detail">{{ t.detail }}</span>{% endif %}
+    <form class="inline" method="post" action="/tasks/{{ t.id }}/undone"><button type="submit">未完了に戻す</button></form>
+    <form class="inline" method="post" action="/tasks/{{ t.id }}/delete" data-confirm="「{{ t.title }}」を削除しますか?"><button type="submit">削除</button></form>
+  </li>
+  {% else %}
+  <li>完了済みのタスクはありません</li>
+  {% endfor %}
+</ul>
+{% endblock %}

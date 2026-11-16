@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 import pytest
 
-from pda.domain.task import OVERDUE_PREFIX, Priority, Task, incomplete_by_priority
+from pda.domain.task import OVERDUE_PREFIX, Priority, Task, completed_by_newest, incomplete_by_priority
 
 T0 = datetime(2026, 11, 15, 9, 0)
 T1 = datetime(2026, 11, 15, 10, 0)
@@ -111,3 +111,30 @@ def test_優先度と作成日時が同じタスクは元の順序を保つ():
     result = incomplete_by_priority([first, second])
 
     assert [t.title for t in result] == ["一番目", "二番目"]
+
+
+# --- 完了済みの一覧 ----------------------------------------------------------
+def test_完了済みの一覧は完了したタスクだけを作成日時の新しい順に返す():
+    old = Task(title="古い", priority=Priority.HIGH, created_at=T0, done=True)
+    open_ = Task(title="未完了", priority=Priority.HIGH, created_at=T1)
+    new = Task(title="新しい", priority=Priority.LOW, created_at=T2, done=True)
+
+    assert [t.title for t in completed_by_newest([old, open_, new])] == ["新しい", "古い"]
+
+
+def test_完了済みで作成日時が同じタスクは元の順序を保つ():
+    first = Task(title="一番目", priority=Priority.LOW, created_at=T0, done=True)
+    second = Task(title="二番目", priority=Priority.HIGH, created_at=T0, done=True)
+
+    assert [t.title for t in completed_by_newest([first, second])] == ["一番目", "二番目"]
+
+
+# --- 詳細 ------------------------------------------------------------------
+def test_詳細は省略すると空():
+    assert Task(title="牛乳を買う", priority=Priority.LOW, created_at=T0).detail == ""
+
+
+def test_詳細を付けて作れる():
+    t = Task(title="牛乳を買う", priority=Priority.LOW, created_at=T0, detail="シチュー用。\n1L を 2 本")
+
+    assert t.detail == "シチュー用。\n1L を 2 本"

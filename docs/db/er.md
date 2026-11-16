@@ -12,6 +12,7 @@ erDiagram
         TEXT due "NULL 可: YYYY-MM-DD"
         INTEGER done "NOT NULL: 0 / 1"
         TEXT created_at "NOT NULL"
+        TEXT detail "NOT NULL DEFAULT '' (0002)"
     }
     events {
         INTEGER id PK
