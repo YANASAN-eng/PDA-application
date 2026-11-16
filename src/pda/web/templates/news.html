@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}ニュース - PDA{% endblock %}
+{% block content %}
+<h1>ニュース</h1>
+{% for day, items in sections %}
+<h2>{{ day.isoformat() }}</h2>
+<ul class="items">
+  {% for a, labels in items %}
+  <li class="article{% if a.is_read %} read{% endif %}" data-id="{{ a.id }}">
+    <a href="{{ a.url }}" class="article-link" data-id="{{ a.id }}" target="_blank" rel="noopener noreferrer">{{ a.title }}</a>
+    <span class="meta">{% for label in labels %}<span class="badge">{{ label }}</span>{% endfor %}{{ a.feed.name }}{% if a.published_at %} / {{ a.published_at.strftime("%Y-%m-%d %H:%M") }}{% endif %}</span>
+    <p class="summary">{{ a.summary or "(概要なし)" }}</p>
+    {% if a.is_read %}
+    <form class="inline" method="post" action="/news/{{ a.id }}/unread"><input type="hidden" name="page" value="{{ pager.page }}"><button type="submit">未読に戻す</button></form>
+    {% else %}
+    <form class="inline" method="post" action="/news/{{ a.id }}/read"><input type="hidden" name="page" value="{{ pager.page }}"><button type="submit">既読</button></form>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>まだ記事はありません。ニュースの処理(<code>python -m pda.news_job</code>)を実行すると、要約した記事がここに並びます。</p>
+{% endfor %}
+{% if pager.total_pages > 1 %}
+<nav class="pager" aria-label="ページ">
+  {% if pager.has_prev %}<a href="/news?page={{ pager.page - 1 }}">← 新しい記事</a>{% endif %}
+  <span>{{ pager.page }} / {{ pager.total_pages }}</span>
+  {% if pager.has_next %}<a href="/news?page={{ pager.page + 1 }}">古い記事 →</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // 元記事のリンクを開いたら、裏で POST を送って既読にする(GET では既読にしない: 先読みで既読になるのを防ぐ)。
+  // sendBeacon はページを離れる瞬間でも送信が途切れない。JavaScript が動かないときは「既読」ボタンで
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest("a.article-link");
+    if (!link) return;
+    const item = link.closest("li.article");
+    if (item.classList.contains("read")) return;
+    navigator.sendBeacon(`/news/${link.dataset.id}/read`, new FormData());
+    item.classList.add("read");
+  });
+</script>
+{% endblock %}
