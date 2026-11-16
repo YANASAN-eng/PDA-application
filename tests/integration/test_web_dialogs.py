@@ -20,7 +20,7 @@ def dialog_of(html: str, dialog_id: str) -> str:
     return html[start:html.index("</dialog>", start)]
 
 
-@pytest.mark.parametrize("path, dialog_id", [("/today", "event-dialog"), ("/events", "event-dialog"), ("/memos", "memo-dialog"), ("/tasks", "task-edit-dialog"), ("/tasks/done", "task-edit-dialog")])
+@pytest.mark.parametrize("path, dialog_id", [("/routines", "routine-dialog"), ("/today", "event-dialog"), ("/events", "event-dialog"), ("/memos", "memo-dialog"), ("/tasks", "task-edit-dialog"), ("/tasks/done", "task-edit-dialog")])
 def test_ポップアップは閉じるという名前のバツボタンで閉じる(client, path, dialog_id):
     dialog = dialog_of(client.get(path).text, dialog_id)
 

@@ -1,0 +1,9 @@
+{# 日課の入力欄(追加フォーム・編集ページ・ポップアップで共有)。prefix は欄の id の接頭辞。
+   form.weekdays はチェックを入れておく曜日の集合(月=0 … 日=6) #}
+<p><label>タイトル <input name="title" id="{{ prefix }}title" value="{{ form.title }}" required placeholder="例: 英単語を 10 個覚える"></label></p>
+<fieldset class="weekday-picker">
+  <legend>曜日</legend>
+  {% for name in "月火水木金土日" %}
+  <label class="weekday"><input type="checkbox" name="weekdays" value="{{ loop.index0 }}" id="{{ prefix }}weekday-{{ loop.index0 }}"{% if loop.index0 in form.weekdays %} checked{% endif %}><span>{{ name }}</span></label>
+  {% endfor %}
+</fieldset>

@@ -24,7 +24,7 @@ def client(tmp_path):
 
 
 PAGES = {
-    "/today": "今日",
+    "/today": "今日", "/routines": "今日",
     "/tasks": "ToDo", "/tasks/done": "ToDo", "/tasks/1/edit": "ToDo",
     "/events": "予定", "/events/past": "予定", "/events/new": "予定",
     "/memos": "メモ", "/memos/new": "メモ",

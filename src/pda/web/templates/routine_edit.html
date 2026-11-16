@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}日課の編集 - PDA{% endblock %}
+{% block content %}
+<h1>日課の編集</h1>
+<form method="post" action="/routines/{{ routine_id }}/edit" class="panel routine-form">
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  {% with prefix="" %}{% include "_routine_form_fields.html" %}{% endwith %}
+  <p><button type="submit" class="primary">保存</button> <a href="/routines" class="pill-link">やめる</a></p>
+</form>
+{% endblock %}

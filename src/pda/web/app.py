@@ -24,10 +24,12 @@ from pda.db.event_repository import EventRepository
 from pda.db.keyword_repository import KeywordRepository
 from pda.db.migrate import connect, migrate_file
 from pda.db.memo_repository import MemoRepository
+from pda.db.routine_repository import RoutineRepository
 from pda.db.task_repository import TaskRepository
 from pda.domain.event import AllDayEvent, Event, TimedEvent, events_on, past_by_day, upcoming_by_day
 from pda.domain.keyword import Keyword, KeywordGroup, as_groups
 from pda.domain.memo import Memo, memos_by_updated, parse_tag_input, search_memos, tag_counts, with_tag
+from pda.domain.routine import Routine, routines_on, weekdays_label
 from pda.domain.task import Priority, Task, completed_by_newest, incomplete_by_priority
 from pda.news.filter import matched_groups, news_by_day
 from pda.web.pagination import paginate
@@ -68,11 +70,15 @@ def create_app(db_path: Path, *, clock: Callable[[], datetime] = _system_clock) 
 
     @app.get("/today")
     def today_page(request: Request):
-        """今日の予定(2026-11-16 決定: 今日の画面には予定だけを出す)。"""
+        """今日の日課と今日の予定(2026-11-16 決定)。"""
         today = clock().date()
         with open_db() as conn:
             items = events_on(today, EventRepository(conn).list_all())
-        return TEMPLATES.TemplateResponse(request, "today.html", {"today": today, "events": items})
+            routine_repo = RoutineRepository(conn)
+            todays = routines_on(today, routine_repo.list_all())
+            checked = routine_repo.checked_on(today)
+        context = {"today": today, "events": items, "routines": [(r, r.id in checked) for r in todays]}
+        return TEMPLATES.TemplateResponse(request, "today.html", context)
 
     def render_task_list(request: Request, *, form: dict | None = None, error: str | None = None, status: int = 200):
         with open_db() as conn:
@@ -237,6 +243,84 @@ def create_app(db_path: Path, *, clock: Callable[[], datetime] = _system_clock) 
             except LookupError:
                 raise HTTPException(status_code=404, detail="キーワードが見つかりません") from None
         return RedirectResponse("/keywords", status_code=303)
+
+    # --- 日課 ----------------------------------------------------------------------
+    def routine_or_404(conn, routine_id: int) -> Routine:
+        routine = RoutineRepository(conn).get(routine_id)
+        if routine is None:
+            raise HTTPException(status_code=404, detail="日課が見つかりません")
+        return routine
+
+    def set_checked(routine_id: int, checked: bool):
+        """チェックする日はサーバーが決める(ブラウザから日付を受け取らない)。"""
+        with open_db() as conn:
+            repo = RoutineRepository(conn)
+            try:
+                repo.check(routine_id, clock().date()) if checked else repo.uncheck(routine_id, clock().date())
+            except LookupError:
+                raise HTTPException(status_code=404, detail="日課が見つかりません") from None
+        return RedirectResponse("/today", status_code=303)
+
+    @app.post("/routines/{routine_id}/check")
+    def routine_check(routine_id: int):
+        return set_checked(routine_id, True)
+
+    @app.post("/routines/{routine_id}/uncheck")
+    def routine_uncheck(routine_id: int):
+        return set_checked(routine_id, False)
+
+    def render_routines(request: Request, *, form: dict | None = None, error: str | None = None, status: int = 200):
+        with open_db() as conn:
+            items = RoutineRepository(conn).list_all()
+        context = {"routines": items, "form": form or {"title": "", "weekdays": set(range(7))}, "error": error}
+        return TEMPLATES.TemplateResponse(request, "routines.html", context, status_code=status)
+
+    @app.get("/routines")
+    def routine_list(request: Request):
+        return render_routines(request)
+
+    @app.post("/routines")
+    def routine_create(request: Request, title: str = Form(""), weekdays: list[str] = Form([])):
+        form = {"title": title, "weekdays": _weekday_set(weekdays)}
+        try:
+            routine = Routine(title=title, weekdays=_parse_weekdays(weekdays))
+        except ValueError as e:
+            return render_routines(request, form=form, error=str(e), status=400)
+        with open_db() as conn:
+            RoutineRepository(conn).add(routine)
+        return RedirectResponse("/routines", status_code=303)
+
+    def render_routine_edit(request: Request, routine_id: int, *, form: dict, error: str | None = None, status: int = 200):
+        context = {"routine_id": routine_id, "form": form, "error": error}
+        return TEMPLATES.TemplateResponse(request, "routine_edit.html", context, status_code=status)
+
+    @app.get("/routines/{routine_id}/edit")
+    def routine_edit_page(request: Request, routine_id: int):
+        """編集ページ(ポップアップが使えないときの代わり)。GET は何も変えない。"""
+        with open_db() as conn:
+            routine = routine_or_404(conn, routine_id)
+        return render_routine_edit(request, routine_id, form={"title": routine.title, "weekdays": set(routine.weekdays)})
+
+    @app.post("/routines/{routine_id}/edit")
+    def routine_edit(request: Request, routine_id: int, title: str = Form(""), weekdays: list[str] = Form([])):
+        form = {"title": title, "weekdays": _weekday_set(weekdays)}
+        with open_db() as conn:
+            routine_or_404(conn, routine_id)
+            try:
+                routine = Routine(id=routine_id, title=title, weekdays=_parse_weekdays(weekdays))
+            except ValueError as e:
+                return render_routine_edit(request, routine_id, form=form, error=str(e), status=400)
+            RoutineRepository(conn).update(routine)
+        return RedirectResponse("/routines", status_code=303)
+
+    @app.post("/routines/{routine_id}/delete")
+    def routine_delete(routine_id: int):
+        with open_db() as conn:
+            try:
+                RoutineRepository(conn).delete(routine_id)
+            except LookupError:
+                raise HTTPException(status_code=404, detail="日課が見つかりません") from None
+        return RedirectResponse("/routines", status_code=303)
 
     # --- 予定 ----------------------------------------------------------------------
     def event_or_404(conn, event_id: int) -> Event:
@@ -541,3 +625,20 @@ def _parse_event(form: dict) -> Event:
 
 
 TEMPLATES.env.globals.update(jp_day=jp_day, event_time_label=event_time_label, event_form=event_form)
+
+
+# --- 日課のフォーム ---------------------------------------------------------------
+def _parse_weekdays(values: list[str]) -> list[int]:
+    """フォームの曜日(文字列の並び)を数にする。数字でなければ ValueError(範囲は Routine が検査する)。"""
+    try:
+        return [int(v) for v in values]
+    except ValueError:
+        raise ValueError("曜日が正しくありません") from None
+
+
+def _weekday_set(values: list[str]) -> set[int]:
+    """エラーで描き直すときのチェックの状態(読めない値は無視する)。"""
+    return {int(v) for v in values if v.isdigit()}
+
+
+TEMPLATES.env.globals.update(weekdays_label=weekdays_label)
